@@ -40,6 +40,147 @@ A `.env` file has been generated for you. Review it and update any necessary var
 ## Configuration
 The application configuration is managed in `app/core/config.py`. It uses `pydantic-settings` to load environment variables from the `.env` file.
 
+{% if config.database in ['PostgreSQL', 'MySQL', 'SQLite'] %}
+## Database Setup
+
+This project uses **SQLAlchemy** for ORM and **Alembic** for database migrations.
+
+### 1. Configure Database Connection
+
+Update your `.env` file with your database credentials:
+
+{% if config.database == 'PostgreSQL' %}
+```env
+DATABASE_URL=postgresql://username:password@localhost:5432/{{ config.slug }}
+```
+{% elif config.database == 'MySQL' %}
+```env
+DATABASE_URL=mysql+pymysql://username:password@localhost:3306/{{ config.slug }}
+```
+{% elif config.database == 'SQLite' %}
+```env
+DATABASE_URL=sqlite:///./{{ config.slug }}.db
+```
+{% endif %}
+
+### 2. Initialize Alembic
+
+If this is a new project, initialize Alembic:
+
+```bash
+alembic init alembic
+```
+
+**Note:** If `alembic/` folder already exists, skip this step.
+
+### 3. Configure Alembic
+
+Edit `alembic/env.py` to import your models:
+
+```python
+# Add at the top
+from app.dependencies.db import Base
+from app.models import *  # Import all your models
+
+# Update target_metadata
+target_metadata = Base.metadata
+```
+
+Edit `alembic.ini` to use your database URL from config:
+
+```ini
+# Replace the sqlalchemy.url line with:
+# sqlalchemy.url = driver://user:pass@localhost/dbname
+# Or leave it empty and set in env.py from your config
+```
+
+### 4. Create Initial Migration
+
+Generate the first migration based on your models:
+
+```bash
+alembic revision --autogenerate -m "Initial migration"
+```
+
+This will create a migration file in `alembic/versions/`.
+
+### 5. Apply Migrations
+
+Apply the migration to create tables in your database:
+
+```bash
+alembic upgrade head
+```
+
+### 6. Verify Database
+
+Your database tables should now be created. You can verify by connecting to your database.
+
+### Common Migration Commands
+
+```bash
+# Create a new migration after model changes
+alembic revision --autogenerate -m "Description of changes"
+
+# Apply all pending migrations
+alembic upgrade head
+
+# Rollback one migration
+alembic downgrade -1
+
+# Show current migration version
+alembic current
+
+# Show migration history
+alembic history
+```
+
+### Migration Workflow
+
+1. **Modify your models** in `app/models/`
+2. **Generate migration**: `alembic revision --autogenerate -m "Add new field"`
+3. **Review migration file** in `alembic/versions/`
+4. **Apply migration**: `alembic upgrade head`
+
+### Official Documentation
+
+- [SQLAlchemy](https://docs.sqlalchemy.org/)
+- [Alembic](https://alembic.sqlalchemy.org/)
+- [FastAPI with SQL Databases](https://fastapi.tiangolo.com/tutorial/sql-databases/)
+
+{% elif config.database == 'MongoDB' %}
+## Database Setup
+
+This project uses **MongoEngine** for MongoDB ODM.
+
+### 1. Configure MongoDB Connection
+
+Update your `.env` file with your MongoDB connection string:
+
+```env
+MONGODB_URL=mongodb://localhost:27017/{{ config.slug }}
+```
+
+### 2. Create Indexes
+
+MongoEngine will automatically create collections when you insert data. Indexes defined in your models will be created automatically.
+
+### 3. No Schema Migrations Needed
+
+MongoDB is schema-less, so traditional migrations aren't required. However, if you need to transform existing data:
+
+1. Create a Python script
+2. Connect to MongoDB using your connection string
+3. Update documents as needed
+
+### Official Documentation
+
+- [MongoEngine](http://mongoengine.org/)
+- [Motor (Async MongoDB)](https://motor.readthedocs.io/)
+- [PyMongo](https://pymongo.readthedocs.io/)
+
+{% endif %}
+
 ## Run Application
 
 ```bash
@@ -75,3 +216,4 @@ You can also run the application using Docker.
 docker-compose up --build
 ```
 {% endif %}
+

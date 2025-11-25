@@ -45,6 +45,136 @@ Available configurations:
 - `testing`
 - `production`
 
+{% if config.database in ['PostgreSQL', 'MySQL', 'SQLite'] %}
+## Database Setup
+
+This project uses **Flask-SQLAlchemy** for ORM and **Flask-Migrate** (Alembic) for database migrations.
+
+### 1. Configure Database Connection
+
+Update your `.env` file with your database credentials:
+
+{% if config.database == 'PostgreSQL' %}
+```env
+DATABASE_URL=postgresql://username:password@localhost:5432/{{ config.slug }}
+```
+{% elif config.database == 'MySQL' %}
+```env
+DATABASE_URL=mysql+pymysql://username:password@localhost:3306/{{ config.slug }}
+```
+{% elif config.database == 'SQLite' %}
+```env
+DATABASE_URL=sqlite:///{{ config.slug }}.db
+```
+{% endif %}
+
+### 2. Initialize Migrations
+
+If this is a new project, initialize the migrations folder:
+
+```bash
+flask db init
+```
+
+**Note:** If migrations folder already exists, skip this step.
+
+### 3. Create Initial Migration
+
+Generate the first migration based on your models:
+
+```bash
+flask db migrate -m "Initial migration"
+```
+
+This will create a migration file in `migrations/versions/`.
+
+### 4. Apply Migrations
+
+Apply the migration to create tables in your database:
+
+```bash
+flask db upgrade
+```
+
+### 5. Verify Database
+
+Your database tables should now be created. You can verify by connecting to your database.
+
+### Common Migration Commands
+
+```bash
+# Create a new migration after model changes
+flask db migrate -m "Description of changes"
+
+# Apply pending migrations
+flask db upgrade
+
+# Rollback last migration
+flask db downgrade
+
+# Show current migration status
+flask db current
+
+# Show migration history
+flask db history
+```
+
+### Migration Workflow
+
+1. **Modify your models** in `app/models/`
+2. **Generate migration**: `flask db migrate -m "Add new field"`
+3. **Review migration file** in `migrations/versions/`
+4. **Apply migration**: `flask db upgrade`
+
+### Official Documentation
+
+- [Flask-SQLAlchemy](https://flask-sqlalchemy.palletsprojects.com/)
+- [Flask-Migrate](https://flask-migrate.readthedocs.io/)
+- [Alembic](https://alembic.sqlalchemy.org/)
+
+{% elif config.database == 'MongoDB' %}
+## Database Setup
+
+This project uses **MongoEngine** for MongoDB ODM.
+
+### 1. Configure MongoDB Connection
+
+Update your `.env` file with your MongoDB connection string:
+
+```env
+MONGODB_URL=mongodb://localhost:27017/{{ config.slug }}
+```
+
+### 2. Create Indexes
+
+MongoEngine will automatically create collections when you insert data. To create indexes defined in your models:
+
+```python
+# Run this once after starting your app
+from app import create_app
+from app.extensions import db
+
+app = create_app()
+with app.app_context():
+    # This creates indexes defined in model meta
+    db.connection.admin.command('ping')
+```
+
+### 3. No Schema Migrations Needed
+
+MongoDB is schema-less, so traditional migrations aren't required. However, if you need to transform existing data:
+
+1. Create a Python script in a `migrations/` folder
+2. Connect to MongoDB
+3. Update documents as needed
+
+### Official Documentation
+
+- [MongoEngine](http://mongoengine.org/)
+- [PyMongo](https://pymongo.readthedocs.io/)
+
+{% endif %}
+
 ## Run Application
 
 ```bash
@@ -79,3 +209,4 @@ You can also run the application using Docker.
 docker-compose up --build
 ```
 {% endif %}
+

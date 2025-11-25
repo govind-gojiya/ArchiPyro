@@ -220,13 +220,15 @@ class Generator:
         (app_dir / "utils").mkdir(exist_ok=True)
         
         if config.framework == "Flask":
+            # Create routes/__init__.py for blueprint registration
+            self._render_template(f"{template_base}/app/routes/__init__.py.jinja2", app_dir / "routes" / "__init__.py", config)
             self._render_template(f"{template_base}/app/repositories/base_repository.py.jinja2", app_dir / "repositories" / "base_repository.py", config)
             self._render_template(f"{template_base}/app/utils/email.py.jinja2", app_dir / "utils" / "email.py", config)
         else:
             self._render_template(f"{template_base}/app/utils/email.py.jinja2", app_dir / "utils" / "email.py", config)
 
         # Create __init__.py in subdirectories
-        for subdir in ["models", "services", "repositories", "routes", "utils"]:
+        for subdir in ["models", "services", "repositories", "utils"]:
             (app_dir / subdir / "__init__.py").touch()
             
         # Save config
@@ -311,26 +313,32 @@ class Generator:
         name_lower = name.lower()
         
         if config.framework == "Flask":
-            # Flask: Register blueprint in app/__init__.py
-            init_file = Path.cwd() / "app" / "__init__.py"
-            if not init_file.exists():
+            # Flask: Add blueprint registration to app/routes/__init__.py
+            routes_init = Path.cwd() / "app" / "routes" / "__init__.py"
+            if not routes_init.exists():
                 return
                 
-            content = init_file.read_text()
+            content = routes_init.read_text()
             
             # Check if already registered
             if f"from app.routes.{name_lower} import {name_lower}_bp" in content:
+                print(f"Blueprint {name_lower}_bp already registered")
                 return
-                
-            # Append registration before "return app"
-            import_stmt = f"    from app.routes.{name_lower} import {name_lower}_bp\n"
-            reg_stmt = f"    app.register_blueprint({name_lower}_bp, url_prefix='/{name_lower}')\n"
             
-            if "return app" in content:
-                parts = content.rsplit("return app", 1)
-                new_content = parts[0] + import_stmt + reg_stmt + "    return app" + parts[1]
-                init_file.write_text(new_content)
-                print(f"Registered blueprint {name_lower}_bp in app/__init__.py")
+            # Add import and registration before the last line
+            import_line = f"    from app.routes.{name_lower} import {name_lower}_bp\n"
+            register_line = f"    app.register_blueprint({name_lower}_bp, url_prefix='/{name_lower}')\n"
+            
+            # Insert before the comment line "# Additional blueprints..."
+            if "# Additional blueprints will be registered here automatically" in content:
+                new_content = content.replace(
+                    "    # Additional blueprints will be registered here automatically",
+                    f"{import_line}{register_line}    # Additional blueprints will be registered here automatically"
+                )
+                routes_init.write_text(new_content)
+                print(f"Registered blueprint {name_lower}_bp in app/routes/__init__.py")
+            else:
+                print(f"Warning: Could not find registration marker in app/routes/__init__.py")
 
         else:
             # FastAPI: Register router in app/main.py
