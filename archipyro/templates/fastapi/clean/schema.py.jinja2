@@ -1,0 +1,17 @@
+from pydantic import BaseModel
+from typing import Optional
+
+class {{ name | to_pascal_case }}Base(BaseModel):
+    name: str
+
+class {{ name | to_pascal_case }}Create({{ name | to_pascal_case }}Base):
+    pass
+
+class {{ name | to_pascal_case }}Update({{ name | to_pascal_case }}Base):
+    name: Optional[str] = None
+
+class {{ name | to_pascal_case }}({{ name | to_pascal_case }}Base):
+    id: int
+
+    class Config:
+        orm_mode = True

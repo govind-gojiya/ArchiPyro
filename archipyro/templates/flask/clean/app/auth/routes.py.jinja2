@@ -1,0 +1,33 @@
+from flask import Blueprint, request, jsonify
+from app.auth.utils import generate_token
+from app.models.user import User
+from app.extensions import db
+
+auth_bp = Blueprint('auth', __name__)
+
+@auth_bp.route('/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    if not data or not data.get('username') or not data.get('password'):
+        return jsonify({'message': 'Missing credentials'}), 400
+        
+    user = User.query.filter_by(username=data.get('username')).first()
+    
+    if not user or not user.check_password(data.get('password')):
+        return jsonify({'message': 'Invalid credentials'}), 401
+        
+    token = generate_token(user.id)
+    return jsonify({'token': token})
+
+@auth_bp.route('/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    if User.query.filter_by(username=data.get('username')).first():
+        return jsonify({'message': 'User already exists'}), 400
+        
+    user = User(username=data.get('username'))
+    user.set_password(data.get('password'))
+    db.session.add(user)
+    db.session.commit()
+    
+    return jsonify({'message': 'User created successfully'}), 201

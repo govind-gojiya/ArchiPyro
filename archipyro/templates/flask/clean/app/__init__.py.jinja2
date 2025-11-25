@@ -1,0 +1,24 @@
+from flask import Flask
+from app.config import config
+from app.extensions import init_extensions
+
+def create_app(config_name='default'):
+    app = Flask(__name__)
+    app.config.from_object(config[config_name])
+
+    init_extensions(app)
+
+    # Register Blueprints
+    from app.routes.main import main_bp
+    app.register_blueprint(main_bp)
+    
+    {%- if "JWT / Auth Template" in config.features %}
+    from app.auth.routes import auth_bp
+    app.register_blueprint(auth_bp, url_prefix='/auth')
+    {%- endif %}
+    
+    # Auto-register other blueprints if they exist
+    # from app.routes.user import user_bp
+    # app.register_blueprint(user_bp, url_prefix='/api/users')
+
+    return app

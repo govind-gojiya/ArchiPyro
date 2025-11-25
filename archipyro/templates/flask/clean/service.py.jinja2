@@ -1,0 +1,66 @@
+{%- if is_resource %}
+from app.repositories.{{ name | lower }}_repository import {{ name | to_pascal_case }}Repository
+{%- else %}
+# from app.repositories.{{ name | lower }}_repository import {{ name | to_pascal_case }}Repository
+{%- endif %}
+
+class {{ name | to_pascal_case }}Service:
+    def __init__(self):
+        {%- if is_resource %}
+        self.repository = {{ name | to_pascal_case }}Repository()
+        {%- else %}
+        # self.repository = {{ name | to_pascal_case }}Repository()
+        pass
+        {%- endif %}
+
+    def get_all_{{ name | lower }}s(self):
+        {%- if is_resource %}
+        return self.repository.get_all()
+        {%- else %}
+        # return self.repository.get_all()
+        return []
+        {%- endif %}
+
+    def get_{{ name | lower }}_by_id(self, id):
+        {%- if is_resource %}
+        return self.repository.get_by_id(id)
+        {%- else %}
+        # return self.repository.get_by_id(id)
+        return None
+        {%- endif %}
+
+    def create_{{ name | lower }}(self, data):
+        {%- if is_resource %}
+        return self.repository.create(**data)
+        {%- else %}
+        # return self.repository.create(**data)
+        return data
+        {%- endif %}
+
+    def update_{{ name | lower }}(self, id, data):
+        {%- if is_resource %}
+        instance = self.repository.get_by_id(id)
+        if instance:
+            return self.repository.update(instance, **data)
+        return None
+        {%- else %}
+        # instance = self.repository.get_by_id(id)
+        # if instance:
+        #     return self.repository.update(instance, **data)
+        return None
+        {%- endif %}
+
+    def delete_{{ name | lower }}(self, id):
+        {%- if is_resource %}
+        instance = self.repository.get_by_id(id)
+        if instance:
+            self.repository.delete(instance)
+            return True
+        return False
+        {%- else %}
+        # instance = self.repository.get_by_id(id)
+        # if instance:
+        #     self.repository.delete(instance)
+        #     return True
+        return False
+        {%- endif %}

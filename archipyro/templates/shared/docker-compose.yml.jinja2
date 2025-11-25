@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - FLASK_APP=app/main.py
+      - FLASK_DEBUG=1
+    {%- if config.database != 'SQLite' and config.database != 'None' %}
+    depends_on:
+      - db
+    {%- endif %}
+
+  {%- if config.database == 'PostgreSQL' %}
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: {{ config.slug }}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  {%- endif %}
+
+  {%- if config.database == 'MySQL' %}
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: {{ config.slug }}
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+    volumes:
+      - mysql_data:/var/lib/mysql
+  {%- endif %}
+
+  {%- if config.database == 'MongoDB' %}
+  mongo:
+    image: mongo:4.4
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+  {%- endif %}
+
+  {%- if 'Redis / Cache' in config.features %}
+  redis:
+    image: redis:6-alpine
+    ports:
+      - "6379:6379"
+  {%- endif %}
+
+volumes:
+  {%- if config.database == 'PostgreSQL' %}
+  postgres_data:
+  {%- endif %}
+  {%- if config.database == 'MySQL' %}
+  mysql_data:
+  {%- endif %}
+  {%- if config.database == 'MongoDB' %}
+  mongo_data:
+  {%- endif %}

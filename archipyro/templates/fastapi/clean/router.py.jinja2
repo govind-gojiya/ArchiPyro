@@ -1,0 +1,54 @@
+"""
+API Router for {{ name | to_pascal_case }}.
+"""
+from fastapi import APIRouter, Depends, HTTPException
+from typing import List
+{%- if is_resource %}
+from app.schemas.{{ name | lower }} import {{ name | to_pascal_case }}, {{ name | to_pascal_case }}Create, {{ name | to_pascal_case }}Update
+from app.services.{{ name | lower }}_service import {{ name | to_pascal_case }}Service
+{%- else %}
+# from app.schemas.{{ name | lower }} import {{ name | to_pascal_case }}, {{ name | to_pascal_case }}Create, {{ name | to_pascal_case }}Update
+# from app.services.{{ name | lower }}_service import {{ name | to_pascal_case }}Service
+{%- endif %}
+
+router = APIRouter()
+{%- if is_resource %}
+service = {{ name | to_pascal_case }}Service()
+
+@router.get("/", response_model=List[{{ name | to_pascal_case }}])
+def read_{{ name | lower }}s(skip: int = 0, limit: int = 100):
+    return service.get_all_{{ name | lower }}s(skip=skip, limit=limit)
+
+@router.get("/{id}", response_model={{ name | to_pascal_case }})
+def read_{{ name | lower }}(id: int):
+    db_{{ name | lower }} = service.get_{{ name | lower }}_by_id(id)
+    if db_{{ name | lower }} is None:
+        raise HTTPException(status_code=404, detail="{{ name }} not found")
+    return db_{{ name | lower }}
+
+@router.post("/", response_model={{ name | to_pascal_case }})
+def create_{{ name | lower }}({{ name | lower }}: {{ name | to_pascal_case }}Create):
+    return service.create_{{ name | lower }}({{ name | lower }})
+
+@router.put("/{id}", response_model={{ name | to_pascal_case }})
+def update_{{ name | lower }}(id: int, {{ name | lower }}: {{ name | to_pascal_case }}Update):
+    db_{{ name | lower }} = service.update_{{ name | lower }}(id, {{ name | lower }})
+    if db_{{ name | lower }} is None:
+        raise HTTPException(status_code=404, detail="{{ name }} not found")
+    return db_{{ name | lower }}
+
+@router.delete("/{id}", response_model={{ name | to_pascal_case }})
+def delete_{{ name | lower }}(id: int):
+    db_{{ name | lower }} = service.delete_{{ name | lower }}(id)
+    if db_{{ name | lower }} is None:
+        raise HTTPException(status_code=404, detail="{{ name }} not found")
+    return db_{{ name | lower }}
+{%- else %}
+# Dummy route for standalone generation
+# TODO: Inject Service and Schemas here
+# service = {{ name | to_pascal_case }}Service()
+
+@router.get("/")
+def read_root():
+    return {"message": "Hello from {{ name }} router!"}
+{%- endif %}

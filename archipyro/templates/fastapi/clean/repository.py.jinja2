@@ -1,0 +1,79 @@
+from sqlalchemy.orm import Session
+{%- if is_resource -%}
+from app.models.{{ name | lower }} import {{ name | to_pascal_case }}
+{%- else -%}
+# from app.models.{{ name | lower }} import {{ name | to_pascal_case }}
+{%- endif %}
+from app.dependencies.db import get_db
+
+class {{ name | to_pascal_case }}Repository:
+    def __init__(self):
+        # In a real app, you might inject the session differently
+        self.db: Session = next(get_db())
+
+    def get_all(self, skip: int = 0, limit: int = 100):
+        {%- if is_resource %}
+        return self.db.query({{ name | to_pascal_case }}).offset(skip).limit(limit).all()
+        {%- else %}
+        # return self.db.query({{ name | to_pascal_case }}).offset(skip).limit(limit).all()
+        return []
+        {%- endif %}
+
+    def get_by_id(self, id: int):
+        {%- if is_resource %}
+        return self.db.query({{ name | to_pascal_case }}).filter({{ name | to_pascal_case }}.id == id).first()
+        {%- else %}
+        # return self.db.query({{ name | to_pascal_case }}).filter({{ name | to_pascal_case }}.id == id).first()
+        return None
+        {%- endif %}
+
+    def create(self, data):
+        {%- if is_resource %}
+        db_item = {{ name | to_pascal_case }}(**data.dict())
+        self.db.add(db_item)
+        self.db.commit()
+        self.db.refresh(db_item)
+        return db_item
+        {%- else %}
+        # db_item = {{ name | to_pascal_case }}(**data.dict())
+        # self.db.add(db_item)
+        # self.db.commit()
+        # self.db.refresh(db_item)
+        return data
+        {%- endif %}
+
+    def update(self, id: int, data):
+        {%- if is_resource %}
+        db_item = self.get_by_id(id)
+        if db_item:
+            update_data = data.dict(exclude_unset=True)
+            for key, value in update_data.items():
+                setattr(db_item, key, value)
+            self.db.commit()
+            self.db.refresh(db_item)
+        return db_item
+        {%- else %}
+        # db_item = self.get_by_id(id)
+        # if db_item:
+        #     update_data = data.dict(exclude_unset=True)
+        #     for key, value in update_data.items():
+        #         setattr(db_item, key, value)
+        #     self.db.commit()
+        #     self.db.refresh(db_item)
+        return None
+        {%- endif %}
+
+    def delete(self, id: int):
+        {%- if is_resource %}
+        db_item = self.get_by_id(id)
+        if db_item:
+            self.db.delete(db_item)
+            self.db.commit()
+        return db_item
+        {%- else %}
+        # db_item = self.get_by_id(id)
+        # if db_item:
+        #     self.db.delete(db_item)
+        #     self.db.commit()
+        return None
+        {%- endif %}

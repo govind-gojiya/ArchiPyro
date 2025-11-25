@@ -1,0 +1,56 @@
+"""
+Routes for {{ name | to_pascal_case }} resource.
+"""
+from flask import Blueprint, request, jsonify
+{%- if is_resource %}
+from app.services.{{ name | lower }}_service import {{ name | to_pascal_case }}Service
+{%- else %}
+# from app.services.{{ name | lower }}_service import {{ name | to_pascal_case }}Service
+{%- endif %}
+
+{{ name | lower }}_bp = Blueprint('{{ name | lower }}', __name__)
+
+{%- if is_resource %}
+service = {{ name | to_pascal_case }}Service()
+
+@{{ name | lower }}_bp.route('/', methods=['GET'])
+def get_all():
+    items = service.get_all_{{ name | lower }}s()
+    return jsonify([item.to_dict() for item in items]), 200
+
+@{{ name | lower }}_bp.route('/<int:id>', methods=['GET'])
+def get_by_id(id):
+    item = service.get_{{ name | lower }}_by_id(id)
+    if item:
+        return jsonify(item.to_dict()), 200
+    return jsonify({'error': 'Not found'}), 404
+
+@{{ name | lower }}_bp.route('/', methods=['POST'])
+def create():
+    data = request.get_json()
+    item = service.create_{{ name | lower }}(data)
+    return jsonify(item.to_dict()), 201
+
+@{{ name | lower }}_bp.route('/<int:id>', methods=['PUT'])
+def update(id):
+    data = request.get_json()
+    item = service.update_{{ name | lower }}(id, data)
+    if item:
+        return jsonify(item.to_dict()), 200
+    return jsonify({'error': 'Not found'}), 404
+
+@{{ name | lower }}_bp.route('/<int:id>', methods=['DELETE'])
+def delete(id):
+    success = service.delete_{{ name | lower }}(id)
+    if success:
+        return jsonify({'message': 'Deleted'}), 200
+    return jsonify({'error': 'Not found'}), 404
+{%- else %}
+# Dummy route for standalone generation
+# TODO: Inject Service here
+# service = {{ name | to_pascal_case }}Service()
+
+@{{ name | lower }}_bp.route('/', methods=['GET'])
+def index():
+    return jsonify({"message": "Hello from {{ name }} route!"})
+{%- endif %}

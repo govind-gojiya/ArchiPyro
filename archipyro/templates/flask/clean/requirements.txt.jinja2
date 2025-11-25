@@ -1,0 +1,31 @@
+flask
+python-dotenv
+{%- if config.database in ['PostgreSQL', 'MySQL', 'SQLite'] or "SQLAlchemy / ORM" in config.features %}
+flask-sqlalchemy
+{%- if config.database == 'PostgreSQL' %}
+psycopg2-binary
+{%- endif %}
+{%- if config.database == 'MySQL' %}
+pymysql
+{%- endif %}
+{%- endif %}
+{%- if config.database == 'MongoDB' %}
+mongoengine
+{%- endif %}
+{%- if "Alembic / DB Migrations" in config.features %}
+flask-migrate
+{%- endif %}
+{%- if "Redis / Cache" in config.features %}
+flask-caching
+redis
+{%- endif %}
+{%- if "Mail Service" in config.features %}
+flask-mail
+{%- endif %}
+{%- if "JWT / Auth Template" in config.features %}
+flask-jwt-extended
+{%- endif %}
+{%- if "Celery / RQ Background Tasks" in config.features %}
+celery
+redis
+{%- endif %}

@@ -1,0 +1,23 @@
+from pydantic_settings import BaseSettings
+from typing import Optional
+
+class Settings(BaseSettings):
+    PROJECT_NAME: str = "{{ config.name }}"
+    API_V1_STR: str = "/api/v1"
+    
+    {%- if config.database == 'PostgreSQL' %}
+    DATABASE_URL: str = "postgresql://user:password@localhost/{{ config.slug }}"
+    {%- elif config.database == 'MySQL' %}
+    DATABASE_URL: str = "mysql+pymysql://user:password@localhost/{{ config.slug }}"
+    {%- elif config.database == 'SQLite' %}
+    DATABASE_URL: str = "sqlite:///./sql_app.db"
+    {%- endif %}
+    
+    {%- if config.database == 'MongoDB' %}
+    MONGODB_URL: str = "mongodb://localhost:27017/{{ config.slug }}"
+    {%- endif %}
+
+    class Config:
+        env_file = ".env"
+
+settings = Settings()

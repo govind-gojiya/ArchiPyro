@@ -1,0 +1,17 @@
+"""
+Minimal Flask Application.
+"""
+from flask import Flask, jsonify
+
+app = Flask(__name__)
+
+# Configuration
+app.config['SECRET_KEY'] = 'dev-secret-key'
+
+@app.route('/')
+def index():
+    """Root endpoint."""
+    return jsonify({"message": "Hello from Minimal Flask App!"})
+
+if __name__ == '__main__':
+    app.run(debug=True)

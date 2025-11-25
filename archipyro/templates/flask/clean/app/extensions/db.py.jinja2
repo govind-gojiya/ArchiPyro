@@ -1,0 +1,22 @@
+{%- if config.database in ['PostgreSQL', 'MySQL', 'SQLite'] %}
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+
+db = SQLAlchemy()
+migrate = Migrate()
+{%- endif %}
+
+{%- if config.database == 'MongoDB' %}
+from mongoengine import connect
+import os
+
+class MongoEngine:
+    def init_app(self, app):
+        # Extract settings from app config
+        settings = app.config.get('MONGODB_SETTINGS', {})
+        host = settings.get('host') or os.environ.get('MONGODB_URL')
+        if host:
+            connect(host=host)
+
+db = MongoEngine()
+{%- endif %}

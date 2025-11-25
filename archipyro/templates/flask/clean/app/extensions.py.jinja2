@@ -1,0 +1,35 @@
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+{%- if 'Redis / Cache' in config.features %}
+from flask_caching import Cache
+{%- endif %}
+{%- if config.database == 'MongoDB' %}
+from flask_mongoengine import MongoEngine
+{%- endif %}
+
+{%- if config.database in ['PostgreSQL', 'MySQL', 'SQLite'] %}
+db = SQLAlchemy()
+migrate = Migrate()
+{%- endif %}
+
+{%- if config.database == 'MongoDB' %}
+db = MongoEngine()
+{%- endif %}
+
+{%- if 'Redis / Cache' in config.features %}
+cache = Cache()
+{%- endif %}
+
+def init_extensions(app):
+    {%- if config.database in ['PostgreSQL', 'MySQL', 'SQLite'] %}
+    db.init_app(app)
+    migrate.init_app(app, db)
+    {%- endif %}
+    
+    {%- if config.database == 'MongoDB' %}
+    db.init_app(app)
+    {%- endif %}
+
+    {%- if 'Redis / Cache' in config.features %}
+    cache.init_app(app)
+    {%- endif %}

@@ -1,0 +1,20 @@
+import os
+from .base import Config
+
+class ProductionConfig(Config):
+    {%- if config.database == 'PostgreSQL' %}
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
+        'postgresql://user:password@localhost/prod_db'
+    {%- elif config.database == 'MySQL' %}
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
+        'mysql+pymysql://user:password@localhost/prod_db'
+    {%- elif config.database == 'SQLite' %}
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
+        'sqlite:///data.db'
+    {%- endif %}
+    
+    {%- if config.database == 'MongoDB' %}
+    MONGODB_SETTINGS = {
+        'host': os.environ.get('MONGODB_URL') or 'mongodb://localhost:27017/prod_db'
+    }
+    {%- endif %}

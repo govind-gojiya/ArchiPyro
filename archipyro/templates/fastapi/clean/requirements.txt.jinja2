@@ -1,0 +1,30 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+{%- if config.database in ['PostgreSQL', 'MySQL', 'SQLite'] or "SQLAlchemy / ORM" in config.features %}
+sqlalchemy
+{%- if config.database == 'PostgreSQL' %}
+psycopg2-binary
+{%- endif %}
+{%- if config.database == 'MySQL' %}
+pymysql
+{%- endif %}
+{%- endif %}
+{%- if config.database == 'MongoDB' %}
+mongoengine
+{%- endif %}
+{%- if "Alembic / DB Migrations" in config.features %}
+alembic
+{%- endif %}
+{%- if "Mail Service" in config.features %}
+fastapi-mail
+{%- endif %}
+{%- if "JWT / Auth Template" in config.features %}
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+{%- endif %}
+{%- if "Celery / RQ Background Tasks" in config.features %}
+celery
+redis
+{%- endif %}

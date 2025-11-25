@@ -1,0 +1,30 @@
+from fastapi import FastAPI
+from contextlib import asynccontextmanager
+from app.core.config import settings
+from app.api.v1.routers import example_router
+{%- if config.database != 'None' %}
+from app.dependencies.db import init_db
+{%- endif %}
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    {%- if config.database != 'None' %}
+    init_db()
+    {%- endif %}
+    yield
+    # Shutdown
+    pass
+
+app = FastAPI(
+    title="{{ config.name }}",
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    lifespan=lifespan
+)
+
+app.include_router(example_router, prefix="/api/v1/example", tags=["example"])
+
+{%- if "JWT / Auth Template" in config.features %}
+from app.api.v1.routers.auth import router as auth_router
+app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
+{%- endif %}

@@ -1,0 +1,40 @@
+"""
+Mail Service Utility.
+"""
+{%- if "Mail Service" in config.features %}
+from fastapi_mail import MessageSchema, FastMail
+from app.core.mail import conf
+from typing import List
+
+async def send_email(subject: str, recipients: List[str], body: str):
+    """
+    Send an email using fastapi-mail.
+    """
+    message = MessageSchema(
+        subject=subject,
+        recipients=recipients,
+        body=body,
+        subtype="html"
+    )
+    
+    fm = FastMail(conf)
+    try:
+        await fm.send_message(message)
+        return True
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+        return False
+{%- else %}
+from typing import List
+
+async def send_email(subject: str, recipients: List[str], body: str):
+    """
+    Dummy send_email function.
+    Enable 'Mail Service' feature to use real email sending.
+    """
+    print(f"Dummy Email Sent:")
+    print(f"Subject: {subject}")
+    print(f"To: {recipients}")
+    print(f"Body: {body}")
+    return True
+{%- endif %}

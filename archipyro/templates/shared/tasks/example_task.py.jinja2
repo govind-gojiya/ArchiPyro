@@ -1,0 +1,11 @@
+{%- if config.framework == 'Flask' %}
+from app.extensions import celery
+{%- else %}
+from app.core.celery_app import celery_app as celery
+{%- endif %}
+import time
+
+@celery.task(name='example_task')
+def example_task(word: str):
+    time.sleep(5)
+    return f"Task completed: {word}"

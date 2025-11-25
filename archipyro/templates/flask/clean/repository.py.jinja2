@@ -1,0 +1,15 @@
+{%- if is_resource -%}
+from app.models.{{ name | lower }} import {{ name | to_pascal_case }}
+{%- else -%}
+# from app.models.{{ name | lower }} import {{ name | to_pascal_case }}
+{%- endif %}
+from app.repositories.base_repository import BaseRepository
+
+class {{ name | to_pascal_case }}Repository(BaseRepository):
+    def __init__(self):
+        {%- if is_resource %}
+        super().__init__({{ name | to_pascal_case }})
+        {%- else %}
+        # super().__init__({{ name | to_pascal_case }})
+        pass
+        {%- endif %}

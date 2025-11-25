@@ -1,0 +1,12 @@
+"""
+SQLAlchemy Model for {{ name | to_pascal_case }}.
+"""
+from sqlalchemy import Column, Integer, String
+from app.dependencies.db import Base
+
+class {{ name | to_pascal_case }}(Base):
+    __tablename__ = "{{ name | lower }}s"
+
+    id = Column(Integer, primary_key=True, index=True)
+    # Add your columns here
+    # name = Column(String, index=True)

@@ -1,0 +1,21 @@
+import os
+from .base import Config
+
+class DevelopmentConfig(Config):
+    DEBUG = True
+    {%- if config.database == 'PostgreSQL' %}
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
+        'postgresql://user:password@localhost/dev_db'
+    {%- elif config.database == 'MySQL' %}
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
+        'mysql+pymysql://user:password@localhost/dev_db'
+    {%- elif config.database == 'SQLite' %}
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
+        'sqlite:///dev.db'
+    {%- endif %}
+    
+    {%- if config.database == 'MongoDB' %}
+    MONGODB_SETTINGS = {
+        'host': os.environ.get('DEV_MONGODB_URL') or 'mongodb://localhost:27017/dev_db'
+    }
+    {%- endif %}
