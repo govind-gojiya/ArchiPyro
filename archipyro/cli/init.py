@@ -23,7 +23,8 @@ def main():
     framework = prompt.ask_framework()
     architecture = prompt.ask_architecture()
     database = prompt.ask_database()
-    features = prompt.ask_optional_features()
+    features = prompt.ask_optional_features(architecture)  # Pass architecture
+
     
     config = ProjectConfig(
         name=project_name,

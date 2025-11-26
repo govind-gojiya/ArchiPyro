@@ -1,5 +1,14 @@
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-will-never-guess'
+    """Application configuration."""
+    SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+    {% if config.database in ['PostgreSQL', 'MySQL', 'SQLite'] %}
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL', 'sqlite:///{{ config.slug }}.db')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    {% endif %}
+ver-guess'
     # Add Database Config here if needed

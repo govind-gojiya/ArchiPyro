@@ -1,2 +1,13 @@
-flask
-python-dotenv
+fFlask==3.0.0
+python-dotenv==1.0.0
+{% if "Session-Based Auth" in config.features or config.database in ['PostgreSQL', 'MySQL', 'SQLite'] %}
+Flask-SQLAlchemy==3.1.1
+{% if "Alembic / DB Migrations" in config.features %}
+Flask-Migrate==4.0.5
+{% endif %}
+{% if config.database == 'PostgreSQL' %}
+psycopg2-binary==2.9.9
+{% elif config.database == 'MySQL' %}
+pymysql==1.1.0
+{% endif %}
+{% endif %}

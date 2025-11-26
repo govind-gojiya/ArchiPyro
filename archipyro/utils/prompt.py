@@ -38,19 +38,48 @@ def ask_database() -> str:
         ],
     ).ask()
 
-def ask_optional_features() -> list[str]:
-    return questionary.checkbox(
-        "Enable optional features:",
-        choices=[
-            "SQLAlchemy / ORM",
-            "Alembic / DB Migrations",
-            "Redis / Cache",
-            "Celery / RQ Background Tasks",
-            "Mail Service",
-            "JWT / Auth Template",
-            "Docker",
-            "GitHub Actions CI",
-            "Pre-configured Tests (pytest)",
-            "Logging Setup",
-        ],
-    ).ask()
+def ask_optional_features(architecture: str) -> list[str]:
+    """Ask for features based on architecture."""
+    
+    if architecture == "Minimal":
+        # Minimal architecture: very limited features
+        return questionary.checkbox(
+            "Enable optional features:",
+            choices=[
+                "Docker",
+            ],
+        ).ask() or []
+    
+    elif architecture == "MVC":
+        # MVC architecture: template-focused features
+        return questionary.checkbox(
+            "Enable optional features:",
+            choices=[
+                "SQLAlchemy / ORM",
+                "Alembic / DB Migrations",
+                "Mail Service",
+                "Session-Based Auth",
+                "Docker",
+                "GitHub Actions CI",
+                "Logging Setup",
+            ],
+        ).ask() or []
+    
+    else:  # Clean Architecture
+        # Clean Architecture: all features available
+        return questionary.checkbox(
+            "Enable optional features:",
+            choices=[
+                "SQLAlchemy / ORM",
+                "Alembic / DB Migrations",
+                "Redis / Cache",
+                "Celery / RQ Background Tasks",
+                "Mail Service",
+                "JWT / Auth Template",
+                "Docker",
+                "GitHub Actions CI",
+                "Pre-configured Tests (pytest)",
+                "Logging Setup",
+            ],
+        ).ask() or []
+

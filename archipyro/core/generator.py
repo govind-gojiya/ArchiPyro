@@ -91,12 +91,33 @@ class Generator:
                 (app_dir / "models").mkdir(exist_ok=True)
                 (app_dir / "models" / "__init__.py").touch()
             
+            
             # Common for MVC
             self._render_template(f"{template_base}/requirements.txt.jinja2", project_dir / "requirements.txt", config)
             self._render_template(f"{template_base}/README.md.jinja2", project_dir / "README.md", config)
             self._render_template("shared/.env.jinja2", project_dir / ".env", config)
+            
+            # MVC Auth files (if Session-Based Auth is selected)
+            if "Session-Based Auth" in config.features:
+                if config.framework == "Flask":
+                    # Create auth templates directory
+                    (app_dir / "templates" / "auth").mkdir(exist_ok=True)
+                    
+                    # Create templates
+                    self._render_template(f"{template_base}/app/templates/base.html.jinja2", app_dir / "templates" / "base.html", config)
+                    self._render_template(f"{template_base}/app/templates/home.html.jinja2", app_dir / "templates" / "home.html", config)
+                    self._render_template(f"{template_base}/app/templates/auth/login.html.jinja2", app_dir / "templates" / "auth" / "login.html", config)
+                    self._render_template(f"{template_base}/app/templates/auth/register.html.jinja2", app_dir / "templates" / "auth" / "register.html", config)
+                    
+                    # Create User model
+                    self._render_template(f"{template_base}/app/models/user.py.jinja2", app_dir / "models" / "user.py", config)
+                    
+                    # Create auth routes
+                    self._render_template(f"{template_base}/app/routes/auth.py.jinja2", app_dir / "routes" / "auth.py", config)
+            
             config.save(project_dir / "archipyro.json")
             return # Stop here for MVC
+
         
         # Clean Architecture Handling (existing logic)
         # Render templates

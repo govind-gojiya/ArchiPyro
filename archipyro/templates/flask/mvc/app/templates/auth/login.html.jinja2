@@ -1,0 +1,44 @@
+{% raw %}{% extends "base.html" %}
+
+{% block title %}Login - {% endraw %}{{ config.name }}{% raw %}{% endblock %}
+
+{% block content %}{% endraw %}
+<div class="card" style="max-width: 400px; margin: 3rem auto;">
+    <h2 style="margin-bottom: 1.5rem; text-align: center;">Login</h2>
+    
+    <form method="POST" action="{% raw %}{{ url_for('auth.login') }}{% endraw %}">
+        <div style="margin-bottom: 1rem;">
+            <label for="username" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Username</label>
+            <input 
+                type="text" 
+                id="username" 
+                name="username" 
+                required
+                style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem;"
+            >
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <label for="password" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Password</label>
+            <input 
+                type="password" 
+                id="password" 
+                name="password" 
+                required
+                style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 1rem;"
+            >
+        </div>
+        
+        <button 
+            type="submit"
+            style="width: 100%; padding: 0.75rem; background: #3498db; color: white; border: none; border-radius: 4px; font-size: 1rem; cursor: pointer; font-weight: 500;"
+        >
+            Login
+        </button>
+    </form>
+    
+    <p style="text-align: center; margin-top: 1.5rem; color: #666;">
+        Don't have an account? <a href="{% raw %}{{ url_for('auth.register') }}{% endraw %}" style="color: #3498db; text-decoration: none;">Register</a>
+    </p>
+</div>
+{% raw %}{% endblock %}{% endraw %}
