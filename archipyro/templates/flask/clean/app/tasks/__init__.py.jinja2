@@ -1,0 +1,20 @@
+"""
+Celery tasks package.
+
+To add new task modules:
+1. Create a new file in app/tasks/ (e.g., email.py, data_processing.py)
+2. Import all tasks from that module here: from app.tasks.your_module import *
+3. Tasks will be automatically discovered by Celery
+
+Example:
+    from app.tasks.example import *
+    from app.tasks.email import *
+    from app.tasks.data_processing import *
+"""
+
+# Import all tasks from example module
+from app.tasks.example import *  # noqa
+
+# Add imports for your new task modules here
+# from app.tasks.email import *  # noqa
+# from app.tasks.data_processing import *  # noqa

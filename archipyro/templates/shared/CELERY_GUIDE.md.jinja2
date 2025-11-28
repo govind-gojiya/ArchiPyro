@@ -1,0 +1,372 @@
+# Celery & Background Tasks Guide
+
+## Overview
+This project uses Celery for handling asynchronous background tasks and scheduled periodic tasks.
+
+## Architecture
+- **Celery Worker**: Processes background tasks asynchronously
+- **Celery Beat**: Scheduler for periodic tasks
+- **Redis**: Message broker and result backend
+
+## Quick Start
+
+### 1. Start Services with Docker
+```bash
+docker-compose up -d
+```
+
+This starts:
+- Web application
+- Database (PostgreSQL/MySQL)
+- Redis
+- Celery Worker
+- Celery Beat (scheduler)
+
+### 2. Verify Celery is Running
+```bash
+# Check running containers
+docker-compose ps
+
+# View celery worker logs
+docker-compose logs -f celery_worker
+
+# View celery beat logs
+docker-compose logs -f celery_beat
+```
+
+### 3. Test Celery
+```python
+# In Python shell or your code
+from app.tasks import send_email_task
+
+# Send task to queue
+result = send_email_task.delay('user@example.com', 'Test', 'Hello!')
+
+# Check if task is complete
+result.ready()  # Returns True when done
+
+# Get result
+result.get(timeout=10)  # Wait up to 10 seconds
+```
+
+## Running Celery Locally (Without Docker)
+
+### Start Redis
+```bash
+# Using Docker
+docker run -d -p 6379:6379 redis:7-alpine
+
+# Or install Redis locally
+# Ubuntu/Debian: sudo apt-get install redis-server
+# macOS: brew install redis
+redis-server
+```
+
+### Start Celery Worker
+```bash
+# In project root
+celery -A celery_worker.celery worker --loglevel=info
+```
+
+### Start Celery Beat (Scheduler)
+```bash
+# In another terminal
+celery -A celery_worker.celery beat --loglevel=info
+```
+
+## Creating Tasks
+
+### 1. Define Task in `app/tasks/example.py` (or create a new file)
+```python
+from app.extensions.celery import celery
+
+@celery.task(name='app.tasks.my_custom_task')
+def my_custom_task(param1, param2):
+    # Your task logic here
+    result = param1 + param2
+    return result
+```
+
+### 2. Import in `app/tasks/__init__.py`
+```python
+from app.tasks.example import *  # noqa
+
+# Add your new task module:
+# from app.tasks.email import *  # noqa
+```
+
+### 3. Call Task Asynchronously
+```python
+from app.tasks.example import my_custom_task
+
+# Send to queue (non-blocking)
+result = my_custom_task.delay(10, 20)
+
+# Get result (blocking)
+print(result.get())  # 30
+
+# Check status
+print(result.ready())  # True/False
+
+# Or with apply_async for more control
+result = my_custom_task.apply_async(
+    args=[10, 20],
+    countdown=60  # Run after 60 seconds
+)
+```
+
+### 3. Get Task Result
+```python
+# Check status
+if result.ready():
+    print("Task completed!")
+    print(f"Result: {result.get()}")
+else:
+    print("Task still running...")
+
+# Wait for result (blocking)
+final_result = result.get(timeout=30)
+```
+
+## Scheduled Periodic Tasks
+
+### Configure in `app/tasks/__init__.py`
+```python
+from celery.schedules import crontab
+
+celery.conf.beat_schedule = {
+    # Run every 30 minutes
+    'process-data-every-30min': {
+        'task': 'app.tasks.process_data_task',
+        'schedule': crontab(minute='*/30'),
+    },
+    
+    # Run daily at 2 AM
+    'daily-report': {
+        'task': 'app.tasks.generate_daily_report',
+        'schedule': crontab(hour=2, minute=0),
+    },
+    
+    # Run every Monday at 9 AM
+    'weekly-summary': {
+        'task': 'app.tasks.send_weekly_summary',
+        'schedule': crontab(hour=9, minute=0, day_of_week=1),
+    },
+    
+    # Run every 5 seconds (for testing)
+    'test-task': {
+        'task': 'app.tasks.example_task',
+        'schedule': 5.0,  # seconds
+    },
+}
+```
+
+### Crontab Schedule Examples
+```python
+from celery.schedules import crontab
+
+# Every minute
+crontab()
+
+# Every 15 minutes
+crontab(minute='*/15')
+
+# Every hour
+crontab(minute=0)
+
+# Every day at midnight
+crontab(hour=0, minute=0)
+
+# Every Monday at 7:30 AM
+crontab(hour=7, minute=30, day_of_week=1)
+
+# First day of month at midnight
+crontab(hour=0, minute=0, day_of_month=1)
+```
+
+## Monitoring Tasks
+
+### Flower (Web-based monitoring)
+```bash
+# Install Flower
+pip install flower
+
+# Start Flower
+celery -A app.tasks flower
+
+# Visit http://localhost:5555
+```
+
+### Command Line Monitoring
+```bash
+# List active tasks
+celery -A app.tasks inspect active
+
+# List scheduled tasks
+celery -A app.tasks inspect scheduled
+
+# List registered tasks
+celery -A app.tasks inspect registered
+
+# View worker stats
+celery -A app.tasks inspect stats
+
+# Purge all tasks from queue
+celery -A app.tasks purge
+```
+
+## Example Use Cases
+
+### 1. Send Email Asynchronously
+```python
+from app.tasks.example import send_email_task
+
+# In your route/view
+@app.route('/register', methods=['POST'])
+def register():
+    user = create_user(request.form)
+    
+    # Send welcome email in background
+    send_email_task.delay(
+        user.email,
+        'Welcome!',
+        f'Hello {user.name}, welcome to our platform!'
+    )
+    
+    return jsonify({'message': 'User created'})
+```
+
+### 2. Process Large Dataset
+```python
+from app.tasks.example import process_data_task
+
+# In your route/view
+@app.route('/process/<int:data_id>', methods=['POST'])
+def process_data(data_id):
+    # Start processing in background
+    task = process_data_task.delay(data_id)
+    
+    return jsonify({
+        'task_id': task.id,
+        'status': 'processing'
+    })
+
+@app.route('/status/<task_id>')
+def check_status(task_id):
+    from celery.result import AsyncResult
+    task = AsyncResult(task_id)
+    
+    return jsonify({
+        'status': task.state,
+        'result': task.result if task.ready() else None
+    })
+```
+
+### 3. Scheduled Data Cleanup
+```python
+# In app/tasks/example.py
+@celery.task(name='app.tasks.cleanup_old_data')
+def cleanup_old_data():
+    """Remove data older than 30 days."""
+    from datetime import datetime, timedelta
+    from app.models import DataModel
+    from app import db
+    
+    cutoff_date = datetime.utcnow() - timedelta(days=30)
+    old_data = DataModel.query.filter(DataModel.created_at < cutoff_date).all()
+    
+    for item in old_data:
+        db.session.delete(item)
+    
+    db.session.commit()
+    return f"Deleted {len(old_data)} old records"
+
+# In app/tasks/__init__.py
+celery.conf.beat_schedule = {
+    'cleanup-old-data-daily': {
+        'task': 'app.tasks.cleanup_old_data',
+        'schedule': crontab(hour=3, minute=0),  # 3 AM daily
+    },
+}
+```
+
+## Troubleshooting
+
+### Celery Worker Not Starting
+```bash
+# Check Redis connection
+redis-cli ping  # Should return PONG
+
+# Check environment variables
+echo $CELERY_BROKER_URL
+echo $CELERY_RESULT_BACKEND
+
+# Start worker with verbose logging
+celery -A app.tasks worker --loglevel=debug
+```
+
+### Tasks Not Executing
+```bash
+# Check if tasks are registered
+celery -A app.tasks inspect registered
+
+# Check active workers
+celery -A app.tasks inspect active_queues
+
+# Purge stuck tasks
+celery -A app.tasks purge
+```
+
+### Beat Schedule Not Working
+```bash
+# Remove old beat schedule database
+rm celerybeat-schedule.db
+
+# Restart beat with debug logging
+celery -A app.tasks beat --loglevel=debug
+```
+
+## Configuration
+
+### Environment Variables
+```env
+# Required
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/0
+
+# Optional
+CELERY_TASK_TIME_LIMIT=1800  # 30 minutes
+CELERY_TASK_SOFT_TIME_LIMIT=1500  # 25 minutes
+```
+
+### Production Settings
+```python
+# In app/tasks/__init__.py
+celery.conf.update(
+    task_serializer='json',
+    accept_content=['json'],
+    result_serializer='json',
+    timezone='UTC',
+    enable_utc=True,
+    task_track_started=True,
+    task_time_limit=30 * 60,
+    task_soft_time_limit=25 * 60,
+    task_acks_late=True,  # Acknowledge after task completes
+    worker_prefetch_multiplier=1,  # One task at a time
+)
+```
+
+## Best Practices
+
+1. **Keep tasks idempotent** - Tasks should produce the same result if run multiple times
+2. **Use timeouts** - Set task_time_limit to prevent hanging tasks
+3. **Handle failures** - Use retry mechanisms for transient failures
+4. **Log everything** - Use logging for debugging
+5. **Monitor queues** - Use Flower or similar tools
+6. **Test tasks** - Write unit tests for task logic
+
+## Resources
+
+- [Celery Documentation](https://docs.celeryproject.org/)
+- [Celery Best Practices](https://docs.celeryproject.org/en/stable/userguide/tasks.html#best-practices)
+- [Flower Monitoring](https://flower.readthedocs.io/)

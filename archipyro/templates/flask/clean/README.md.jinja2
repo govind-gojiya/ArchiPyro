@@ -181,23 +181,74 @@ MongoDB is schema-less, so traditional migrations aren't required. However, if y
 flask run
 ```
 
-{% if "Celery / RQ Background Tasks" in config.features %}
-## Celery Worker Setup
+{% if 'Celery / RQ Background Tasks' in config.features %}
+## Background Tasks with Celery
 
-This project uses Celery for background tasks. You must have a Redis server running.
+This project includes Celery for handling asynchronous background tasks.
 
-### 1. Start Redis Server
-Ensure you have Redis installed and running.
+### Project Structure
+```
+app/
+├── extensions/
+│   └── celery.py      # Celery configuration with Flask app context
+├── tasks/
+│   ├── __init__.py    # Import all task modules here
+│   └── example.py     # Example tasks
+```
+
+### Start Redis (Required)
 ```bash
-# On Linux/macOS (if installed via package manager)
+# Using Docker
+docker run -d -p 6379:6379 redis:7-alpine
+
+# Or if Redis is installed locally
 redis-server
 ```
 
-### 2. Start Celery Worker
-Open a new terminal, activate your virtual environment, and run:
+### Start Celery Worker
 ```bash
-celery -A app.celery_utils.celery worker --loglevel=info
+celery -A celery_worker.celery worker --loglevel=info
 ```
+
+### Start Celery Beat (for scheduled tasks)
+```bash
+celery -A celery_worker.celery beat --loglevel=info
+```
+
+### Adding New Tasks
+
+1. **Create a new task file** in `app/tasks/` (e.g., `email.py`):
+   ```python
+   from app.extensions.celery import celery
+   
+   @celery.task(name='app.tasks.email.send_welcome_email')
+   def send_welcome_email(user_id):
+       # Your task logic
+       return f"Welcome email sent to user {user_id}"
+   ```
+
+2. **Import it in `app/tasks/__init__.py`**:
+   ```python
+   from app.tasks.example import *  # noqa
+   from app.tasks.email import *    # noqa  <-- Add this line
+   ```
+
+3. **Tasks are automatically discovered** - restart Celery worker to see them
+
+### Using Tasks
+```python
+from app.tasks.example import send_email_task
+
+# Queue a task
+result = send_email_task.delay('user@example.com', 'Subject', 'Body')
+
+# Check if done
+if result.ready():
+    print(result.get())
+```
+
+See `CELERY_GUIDE.md` for detailed documentation.
+
 {% endif %}
 
 {% if "Docker" in config.features %}

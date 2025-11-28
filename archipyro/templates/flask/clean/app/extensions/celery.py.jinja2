@@ -1,0 +1,50 @@
+"""
+Celery extension for Flask.
+"""
+from celery import Celery
+from celery.schedules import crontab
+import os
+
+celery = Celery(
+    'myapp',
+    broker=os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0'),
+    backend=os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+)
+
+def init_celery(app=None):
+    """Initialize Celery with Flask app context."""
+    if app is not None:
+        celery.conf.update(
+            broker_url=app.config.get('CELERY_BROKER_URL', 'redis://localhost:6379/0'),
+            result_backend=app.config.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0'),
+            task_serializer='json',
+            accept_content=['json'],
+            result_serializer='json',
+            timezone='UTC',
+            enable_utc=True,
+            task_track_started=True,
+            task_time_limit=30 * 60,
+            task_soft_time_limit=25 * 60,
+        )
+        
+        # Configure periodic tasks
+        celery.conf.beat_schedule = {
+            'example-every-30-minutes': {
+                'task': 'app.tasks.example.hello_task',
+                'schedule': crontab(minute='*/30'),
+            },
+            'cleanup-daily-midnight': {
+                'task': 'app.tasks.example.cleanup_task',
+                'schedule': crontab(hour=0, minute=0),
+            },
+        }
+        
+        # Make Celery work with Flask app context
+        class ContextTask(celery.Task):
+            def __call__(self, *args, **kwargs):
+                with app.app_context():
+                    return self.run(*args, **kwargs)
+        
+        celery.Task = ContextTask
+    
+    return celery

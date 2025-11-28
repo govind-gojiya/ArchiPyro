@@ -20,7 +20,7 @@ def ask_architecture() -> str:
     return questionary.select(
         "Select architecture pattern:",
         choices=[
-            "Clean Architecture (Services + Repositories + Domain)",
+            "Clean Architecture",
             "MVC",
             "Minimal",
         ],

@@ -1,0 +1,46 @@
+#!/bin/bash
+# Docker entrypoint script for running migrations before starting the app
+
+set -e
+
+echo "Waiting for database to be ready..."
+{% if config.database == 'PostgreSQL' %}
+while ! nc -z db 5432; do
+  sleep 0.1
+done
+{% elif config.database == 'MySQL' %}
+while ! nc -z db 3306; do
+  sleep 0.1
+done
+{% endif %}
+
+echo "Database is ready!"
+
+{% if config.framework == 'Flask' %}
+# Run Flask migrations
+if [ -f "migrations/env.py" ]; then
+  echo "Running database migrations..."
+  flask db upgrade
+else
+  echo "Initializing database migrations..."
+  flask db init
+  flask db migrate -m "Initial migration"
+  flask db upgrade
+fi
+
+# Start Flask app
+echo "Starting Flask application..."
+exec flask run --host=0.0.0.0
+{% else %}
+# Run Alembic migrations for FastAPI
+if [ -d "alembic" ]; then
+  echo "Running database migrations..."
+  alembic upgrade head
+else
+  echo "Warning: No alembic directory found. Please run 'alembic init alembic' first."
+fi
+
+# Start FastAPI app
+echo "Starting FastAPI application..."
+exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+{% endif %}

@@ -13,6 +13,9 @@ from .mail import mail
 {%- if 'JWT / Auth Template' in config.features %}
 from .jwt import jwt
 {%- endif %}
+{%- if 'Celery / RQ Background Tasks' in config.features %}
+from .celery import celery, init_celery
+{%- endif %}
 
 def init_extensions(app):
     {%- if config.database in ['PostgreSQL', 'MySQL', 'SQLite'] %}
@@ -34,4 +37,8 @@ def init_extensions(app):
 
     {%- if 'JWT / Auth Template' in config.features %}
     jwt.init_app(app)
+    {%- endif %}
+
+    {%- if 'Celery / RQ Background Tasks' in config.features %}
+    init_celery(app)
     {%- endif %}

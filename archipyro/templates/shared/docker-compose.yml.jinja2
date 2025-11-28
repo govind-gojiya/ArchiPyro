@@ -3,64 +3,135 @@ version: '3.8'
 services:
   web:
     build: .
+    command: {% if config.framework == "Flask" %}flask run --host=0.0.0.0{% else %}uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload{% endif %}
     ports:
-      - "8000:8000"
+      - "{% if config.framework == 'Flask' %}5000:5000{% else %}8000:8000{% endif %}"
     volumes:
       - .:/app
-    environment:
-      - FLASK_APP=app/main.py
-      - FLASK_DEBUG=1
-    {%- if config.database != 'SQLite' and config.database != 'None' %}
+    env_file:
+      - .env.docker
+    {% if config.database in ['PostgreSQL', 'MySQL'] -%}
     depends_on:
-      - db
-    {%- endif %}
+      db:
+        condition: service_healthy
+      {% if 'Redis / Cache' in config.features -%}
+      redis:
+        condition: service_started
+      {% endif -%}
+    {% elif 'Redis / Cache' in config.features -%}
+    depends_on:
+      redis:
+        condition: service_started
+    {% endif -%}
+    {% if config.database in ['PostgreSQL', 'MySQL'] and 'Alembic / DB Migrations' in config.features -%}
+    entrypoint: /app/docker-entrypoint.sh
+    {% endif %}
 
-  {%- if config.database == 'PostgreSQL' %}
+  {% if config.database == 'PostgreSQL' -%}
   db:
-    image: postgres:13
+    image: postgres:15-alpine
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: {{ config.slug }}
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-{{ config.slug }}}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-  {%- endif %}
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-  {%- if config.database == 'MySQL' %}
+  {% endif -%}
+  {% if config.database == 'MySQL' -%}
   db:
     image: mysql:8.0
     environment:
-      MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: {{ config.slug }}
-      MYSQL_USER: user
-      MYSQL_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpassword}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-{{ config.slug }}}
+      MYSQL_USER: ${MYSQL_USER:-user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-password}
     volumes:
       - mysql_data:/var/lib/mysql
-  {%- endif %}
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-  {%- if config.database == 'MongoDB' %}
+  {% endif -%}
+  {% if config.database == 'MongoDB' -%}
   mongo:
-    image: mongo:4.4
+    image: mongo:6.0
+    environment:
+      MONGO_INITDB_DATABASE: {{ config.slug }}
     ports:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
-  {%- endif %}
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
-  {%- if 'Redis / Cache' in config.features %}
+  {% endif -%}
+  {% if 'Redis / Cache' in config.features -%}
   redis:
-    image: redis:6-alpine
+    image: redis:7-alpine
     ports:
       - "6379:6379"
-  {%- endif %}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
+  {% endif -%}
+  {% if 'Celery / RQ Background Tasks' in config.features -%}
+  celery_worker:
+    build: .
+    command: celery -A celery_worker.celery worker --loglevel=info
+    volumes:
+      - .:/app
+    env_file:
+      - .env.docker
+    depends_on:
+      redis:
+        condition: service_healthy
+      {% if config.database in ['PostgreSQL', 'MySQL'] -%}
+      db:
+        condition: service_healthy
+      {% endif %}
+
+  celery_beat:
+    build: .
+    command: celery -A celery_worker.celery beat --loglevel=info
+    volumes:
+      - .:/app
+    env_file:
+      - .env.docker
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  {% endif -%}
 volumes:
-  {%- if config.database == 'PostgreSQL' %}
+  {% if config.database == 'PostgreSQL' -%}
   postgres_data:
-  {%- endif %}
-  {%- if config.database == 'MySQL' %}
+  {% endif -%}
+  {% if config.database == 'MySQL' -%}
   mysql_data:
-  {%- endif %}
-  {%- if config.database == 'MongoDB' %}
+  {% endif -%}
+  {% if config.database == 'MongoDB' -%}
   mongo_data:
-  {%- endif %}
+  {% endif -%}
+  {% if 'Redis / Cache' in config.features -%}
+  redis_data:
+  {% endif -%}

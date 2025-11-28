@@ -1,0 +1,126 @@
+"""
+Example Celery tasks demonstrating Flask app context usage.
+
+To add new tasks:
+1. Create a new function decorated with @celery.task
+2. Import it in app/tasks/__init__.py using: from app.tasks.example import *
+3. Tasks will be automatically discovered by Celery
+"""
+from app.extensions.celery import celery
+from celery.utils.log import get_task_logger
+{%- if config.database in ['PostgreSQL', 'MySQL', 'SQLite'] %}
+from app.extensions import db
+{%- endif %}
+{%- if 'Mail Service' in config.features %}
+from app.extensions import mail
+from flask_mail import Message
+{%- endif %}
+from flask import current_app
+
+logger = get_task_logger(__name__)
+
+@celery.task(name='app.tasks.example.hello_task')
+def hello_task():
+    """Simple hello task - runs every 30 minutes."""
+    logger.info("Hello from Celery!")
+    return "Task completed"
+
+@celery.task(name='app.tasks.example.cleanup_task')
+def cleanup_task():
+    """Daily cleanup task - runs at midnight."""
+    logger.info("Running cleanup...")
+    return "Cleanup completed"
+
+@celery.task(name='app.tasks.example.app_context_example')
+def app_context_example():
+    """
+    Example task demonstrating Flask app context usage.
+    You can access current_app, db, and other Flask extensions.
+    """
+    app_name = current_app.config.get('APP_NAME', 'MyApp')
+    debug_mode = current_app.config.get('DEBUG', False)
+    
+    logger.info(f"Running task in {app_name}")
+    logger.info(f"Debug mode: {debug_mode}")
+    
+    return f"Task executed in {app_name} context"
+
+{%- if config.database in ['PostgreSQL', 'MySQL', 'SQLite'] %}
+
+@celery.task(name='app.tasks.example.database_task')
+def database_task():
+    """
+    Example task using database with Flask app context.
+    The app context is automatically provided by the ContextTask class.
+    """
+    try:
+        # Example: Count records in a table
+        # Replace 'User' with your actual model
+        # from app.models.user import User
+        # count = User.query.count()
+        
+        # For demonstration, just show we have db access
+        db_uri = current_app.config.get('SQLALCHEMY_DATABASE_URI', 'Not set')
+        logger.info(f"Database URI: {db_uri}")
+        
+        return "Database task completed successfully"
+    except Exception as e:
+        logger.error(f"Database task error: {e}")
+        return f"Database task failed: {str(e)}"
+{%- endif %}
+
+{%- if 'Mail Service' in config.features %}
+
+@celery.task(name='app.tasks.example.send_email_task')
+def send_email_task(to, subject, body):
+    """
+    Send email asynchronously using Flask-Mail.
+    Demonstrates using Flask extensions within Celery tasks.
+    """
+    try:
+        msg = Message(
+            subject=subject,
+            recipients=[to],
+            body=body,
+            sender=current_app.config.get('MAIL_DEFAULT_SENDER', 'noreply@example.com')
+        )
+        mail.send(msg)
+        logger.info(f"Email sent to {to}: {subject}")
+        return f"Email sent to {to}"
+    except Exception as e:
+        logger.error(f"Email sending failed: {e}")
+        return f"Email failed: {str(e)}"
+
+@celery.task(name='app.tasks.example.send_welcome_email')
+def send_welcome_email(user_email, username):
+    """Send welcome email to new users."""
+    subject = f"Welcome to {current_app.config.get('APP_NAME', 'Our App')}!"
+    body = f"""
+    Hello {username},
+    
+    Welcome to our application! We're excited to have you on board.
+    
+    Best regards,
+    The Team
+    """
+    return send_email_task(user_email, subject, body)
+{%- else %}
+
+@celery.task(name='app.tasks.example.send_email_task')
+def send_email_task(to, subject, body):
+    """
+    Send email asynchronously (placeholder - Mail Service not enabled).
+    Enable 'Mail Service' feature to use Flask-Mail integration.
+    """
+    logger.info(f"[DEMO] Sending email to {to}: {subject}")
+    logger.info(f"[DEMO] Body: {body}")
+    # Add your email logic here (SMTP, SendGrid, etc.)
+    return f"Email sent to {to}"
+{%- endif %}
+
+@celery.task(name='app.tasks.example.process_data_task')
+def process_data_task(data_id):
+    """Process data asynchronously."""
+    logger.info(f"Processing data {data_id}...")
+    # Add your processing logic here
+    return f"Data {data_id} processed"
