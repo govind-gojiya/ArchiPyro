@@ -1,0 +1,32 @@
+"""
+{{ name | to_pascal_case }} Middleware - Request/Response Processing.
+"""
+from flask import request, g
+import time
+
+def {{ name | lower }}():
+    """
+    Example middleware for {{ name }}.
+    
+    This can be used for logging, authentication, request validation, etc.
+    Register in app/__init__.py using @app.before_request or @app.after_request
+    """
+    pass
+
+def before_{{ name | lower }}_request():
+    """
+    Executed before each request.
+    """
+    g.start_time = time.time()
+    # Add your logic here
+    # Example: Check authentication, validate headers, etc.
+
+def after_{{ name | lower }}_request(response):
+    """
+    Executed after each request.
+    """
+    if hasattr(g, 'start_time'):
+        elapsed = time.time() - g.start_time
+        # Add your logic here
+        # Example: Log request duration, add custom headers, etc.
+    return response

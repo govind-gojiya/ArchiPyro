@@ -1,17 +1,39 @@
 """
 Model definition for {{ name | to_pascal_case }}.
 """
+from typing import Dict, Any
+from datetime import datetime
 from app.extensions import db
 
 class {{ name | to_pascal_case }}(db.Model):
+    """
+    {{ name | to_pascal_case }} model.
+    """
     __tablename__ = '{{ name | lower }}s'
 
     id = db.Column(db.Integer, primary_key=True)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp(), nullable=False)
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp(), nullable=False)
+    
     # Add your columns here
     # name = db.Column(db.String(80), nullable=False)
+    # description = db.Column(db.Text)
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert model instance to dictionary.
+
+        Returns:
+            Dictionary representation of the model
+        """
         return {
             'id': self.id,
-            # 'name': self.name
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            # 'name': self.name,
+            # 'description': self.description
         }
+    
+    def __repr__(self) -> str:
+        """String representation of the model."""
+        return f'<{{ name | to_pascal_case }} {self.id}>'

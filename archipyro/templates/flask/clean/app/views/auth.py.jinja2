@@ -1,0 +1,119 @@
+"""
+Authentication views for login, registration, and dashboard.
+"""
+from typing import Tuple, Dict, Any
+from flask import request, Response
+from app.models.user import User
+from app.extensions import db
+from app.utils.token import generate_token
+from app.utils.response import success_response, error_response
+from app.forms.auth import LoginForm, RegisterForm
+from app.exceptions import ValidationError, UnauthorizedError
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class AuthView:
+    @staticmethod
+    def login() -> Tuple[Response, int]:
+        """
+        Handle user login.
+        
+        Returns:
+            Tuple of (JSON response, HTTP status code)
+            
+        Raises:
+            ValidationError: If form validation fails
+            UnauthorizedError: If credentials are invalid
+        """
+        try:
+            # Get JSON data from request
+            data = request.get_json() or {}
+            form = LoginForm(data=data, meta={'csrf': False})
+            
+            if not form.validate():
+                raise ValidationError("Invalid login credentials", form.errors)
+            
+            user = User.query.filter_by(username=form.username.data).first()
+            if not user or not user.check_password(form.password.data):
+                logger.warning(f"Failed login attempt for username: {form.username.data}")
+                raise UnauthorizedError("Invalid username or password")
+            
+            token = generate_token(user.id)
+            logger.info(f"User {user.id} logged in successfully")
+            return success_response(
+                data={'token': token, 'user': user.to_dict()},
+                message="Login successful"
+            ), 200
+            
+        except (ValidationError, UnauthorizedError):
+            raise
+        except Exception as e:
+            logger.error(f"Error during login: {str(e)}", exc_info=True)
+            return error_response("Login failed"), 500
+
+    @staticmethod
+    def register() -> Tuple[Response, int]:
+        """
+        Handle user registration.
+        
+        Returns:
+            Tuple of (JSON response, HTTP status code)
+            
+        Raises:
+            ValidationError: If form validation fails or user already exists
+        """
+        try:
+            # Get JSON data from request
+            data = request.get_json() or {}
+            form = RegisterForm(data=data, meta={'csrf': False})
+            
+            if not form.validate():
+                raise ValidationError("Invalid registration data", form.errors)
+            
+            # Check if user already exists
+            if User.query.filter_by(username=form.username.data).first():
+                raise ValidationError("Username already exists")
+            
+            user = User(username=form.username.data)
+            user.set_password(form.password.data)
+            
+            db.session.add(user)
+            db.session.commit()
+            
+            token = generate_token(user.id)
+            logger.info(f"New user registered: {user.username} (id: {user.id})")
+            return success_response(
+                data={'token': token, 'user': user.to_dict()},
+                message="User created successfully"
+            ), 201
+            
+        except ValidationError:
+            raise
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error during registration: {str(e)}", exc_info=True)
+            return error_response("Registration failed"), 500
+
+
+class DashboardView:
+    @staticmethod
+    def get_dashboard(user: User) -> Tuple[Response, int]:
+        """
+        Get user dashboard data.
+        
+        Args:
+            user: Authenticated user object
+            
+        Returns:
+            Tuple of (JSON response, HTTP status code)
+        """
+        try:
+            return success_response(
+                data={'dashboard': user.to_dict()},
+                message="Dashboard accessed successfully"
+            ), 200
+        except Exception as e:
+            logger.error(f"Error retrieving dashboard for user {user.id}: {str(e)}", exc_info=True)
+            return error_response("Failed to retrieve dashboard"), 500

@@ -8,7 +8,7 @@ To add new tasks:
 """
 from app.extensions.celery import celery
 from celery.utils.log import get_task_logger
-{%- if config.database in ['PostgreSQL', 'MySQL', 'SQLite'] %}
+{%- if config.database in ['PostgreSQL', 'MySQL', 'SQLite', 'MongoDB'] %}
 from app.extensions import db
 {%- endif %}
 {%- if 'Mail Service' in config.features %}
@@ -25,12 +25,6 @@ def hello_task():
     logger.info("Hello from Celery!")
     return "Task completed"
 
-@celery.task(name='app.tasks.example.cleanup_task')
-def cleanup_task():
-    """Daily cleanup task - runs at midnight."""
-    logger.info("Running cleanup...")
-    return "Cleanup completed"
-
 @celery.task(name='app.tasks.example.app_context_example')
 def app_context_example():
     """
@@ -45,7 +39,7 @@ def app_context_example():
     
     return f"Task executed in {app_name} context"
 
-{%- if config.database in ['PostgreSQL', 'MySQL', 'SQLite'] %}
+{%- if config.database in ['PostgreSQL', 'MySQL', 'SQLite', 'MongoDB'] %}
 
 @celery.task(name='app.tasks.example.database_task')
 def database_task():
@@ -90,37 +84,4 @@ def send_email_task(to, subject, body):
     except Exception as e:
         logger.error(f"Email sending failed: {e}")
         return f"Email failed: {str(e)}"
-
-@celery.task(name='app.tasks.example.send_welcome_email')
-def send_welcome_email(user_email, username):
-    """Send welcome email to new users."""
-    subject = f"Welcome to {current_app.config.get('APP_NAME', 'Our App')}!"
-    body = f"""
-    Hello {username},
-    
-    Welcome to our application! We're excited to have you on board.
-    
-    Best regards,
-    The Team
-    """
-    return send_email_task(user_email, subject, body)
-{%- else %}
-
-@celery.task(name='app.tasks.example.send_email_task')
-def send_email_task(to, subject, body):
-    """
-    Send email asynchronously (placeholder - Mail Service not enabled).
-    Enable 'Mail Service' feature to use Flask-Mail integration.
-    """
-    logger.info(f"[DEMO] Sending email to {to}: {subject}")
-    logger.info(f"[DEMO] Body: {body}")
-    # Add your email logic here (SMTP, SendGrid, etc.)
-    return f"Email sent to {to}"
 {%- endif %}
-
-@celery.task(name='app.tasks.example.process_data_task')
-def process_data_task(data_id):
-    """Process data asynchronously."""
-    logger.info(f"Processing data {data_id}...")
-    # Add your processing logic here
-    return f"Data {data_id} processed"

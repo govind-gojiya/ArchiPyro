@@ -1,0 +1,37 @@
+"""
+Base exception class for API errors.
+"""
+from typing import Optional, Dict, Any
+
+
+class BaseAPIException(Exception):
+    """
+    Base exception class for all API errors.
+    
+    Attributes:
+        message: Error message
+        status_code: HTTP status code
+        errors: Optional dictionary of field-specific errors
+    """
+    status_code = 500
+    default_message = "An error occurred"
+
+    def __init__(
+        self,
+        message: Optional[str] = None,
+        status_code: Optional[int] = None,
+        errors: Optional[Dict[str, Any]] = None
+    ):
+        """
+        Initialize API exception.
+        
+        Args:
+            message: Error message (defaults to default_message)
+            status_code: HTTP status code (defaults to class status_code)
+            errors: Optional dictionary of field-specific errors
+        """
+        self.message = message or self.default_message
+        self.status_code = status_code or self.__class__.status_code
+        self.errors = errors
+        super().__init__(self.message)
+

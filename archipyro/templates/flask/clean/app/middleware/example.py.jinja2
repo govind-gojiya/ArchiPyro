@@ -1,0 +1,10 @@
+from functools import wraps
+from flask import request, jsonify
+
+def example_middleware(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        # Example middleware logic
+        print("Executing example middleware")
+        return f(*args, **kwargs)
+    return decorated

@@ -1,0 +1,66 @@
+"""
+Standardized response utilities.
+"""
+from typing import Any, Optional, Dict
+from flask import jsonify, Response
+
+
+def success_response(
+    data: Any = None,
+    message: Optional[str] = None,
+    status_code: int = 200
+) -> Response:
+    """
+    Create a standardized success response.
+    
+    Args:
+        data: Response data (can be dict, list, or None)
+        message: Optional success message
+        status_code: HTTP status code (default: 200)
+        
+    Returns:
+        Flask Response object with JSON data
+    """
+    response_data: Dict[str, Any] = {
+        'success': True
+    }
+    
+    if message:
+        response_data['message'] = message
+    
+    if data is not None:
+        response_data['data'] = data
+    
+    response = jsonify(response_data)
+    response.status_code = status_code
+    return response
+
+
+def error_response(
+    message: str,
+    errors: Optional[Dict[str, Any]] = None,
+    status_code: int = 400
+) -> Response:
+    """
+    Create a standardized error response.
+    
+    Args:
+        message: Error message
+        errors: Optional dictionary of field-specific errors
+        status_code: HTTP status code (default: 400)
+        
+    Returns:
+        Flask Response object with JSON error data
+    """
+    response_data: Dict[str, Any] = {
+        'success': False,
+        'message': message
+    }
+    
+    if errors:
+        response_data['errors'] = errors
+    
+    response = jsonify(response_data)
+    response.status_code = status_code
+    return response
+

@@ -1,56 +1,133 @@
 """
 Routes for {{ name | to_pascal_case }} resource.
 """
-from flask import Blueprint, request, jsonify
+from typing import Dict, Any
+from flask import Blueprint, request
 {%- if is_resource %}
-from app.services.{{ name | lower }}_service import {{ name | to_pascal_case }}Service
+from app.views.{{ name | lower }} import {{ name | to_pascal_case }}View
+from app.exceptions import NotFoundError, ValidationError
 {%- else %}
-# from app.services.{{ name | lower }}_service import {{ name | to_pascal_case }}Service
+# from app.views.{{ name | lower }} import {{ name | to_pascal_case }}View
 {%- endif %}
 
 {{ name | lower }}_bp = Blueprint('{{ name | lower }}', __name__)
 
 {%- if is_resource %}
-service = {{ name | to_pascal_case }}Service()
 
 @{{ name | lower }}_bp.route('/', methods=['GET'])
 def get_all():
-    items = service.get_all_{{ name | lower }}s()
-    return jsonify([item.to_dict() for item in items]), 200
+    """
+    Get all {{ name | lower }} records.
+    
+    Returns:
+        JSON response with list of {{ name | lower }} records
+    """
+    try:
+        return {{ name | to_pascal_case }}View.get_all_{{ name | lower }}s()
+    except Exception as e:
+        # Error handling is done in the view
+        raise
+
 
 @{{ name | lower }}_bp.route('/<int:id>', methods=['GET'])
-def get_by_id(id):
-    item = service.get_{{ name | lower }}_by_id(id)
-    if item:
-        return jsonify(item.to_dict()), 200
-    return jsonify({'error': 'Not found'}), 404
+def get_by_id(id: int):
+    """
+    Get a {{ name | lower }} by ID.
+    
+    Args:
+        id: {{ name | to_pascal_case }} ID
+        
+    Returns:
+        JSON response with {{ name | lower }} data
+    """
+    try:
+        return {{ name | to_pascal_case }}View.get_{{ name | lower }}_by_id(id)
+    except NotFoundError:
+        raise
+    except Exception as e:
+        raise
+
 
 @{{ name | lower }}_bp.route('/', methods=['POST'])
 def create():
-    data = request.get_json()
-    item = service.create_{{ name | lower }}(data)
-    return jsonify(item.to_dict()), 201
+    """
+    Create a new {{ name | lower }}.
+    
+    Request body (JSON):
+        {
+            "field1": "value1",
+            "field2": "value2"
+        }
+    
+    Returns:
+        JSON response with created {{ name | lower }} data
+    """
+    try:
+        data: Dict[str, Any] = request.get_json() or {}
+        return {{ name | to_pascal_case }}View.create_{{ name | lower }}(data)
+    except ValidationError:
+        raise
+    except Exception as e:
+        raise
+
 
 @{{ name | lower }}_bp.route('/<int:id>', methods=['PUT'])
-def update(id):
-    data = request.get_json()
-    item = service.update_{{ name | lower }}(id, data)
-    if item:
-        return jsonify(item.to_dict()), 200
-    return jsonify({'error': 'Not found'}), 404
+def update(id: int):
+    """
+    Update an existing {{ name | lower }}.
+    
+    Args:
+        id: {{ name | to_pascal_case }} ID
+        
+    Request body (JSON):
+        {
+            "field1": "new_value1"
+        }
+    
+    Returns:
+        JSON response with updated {{ name | lower }} data
+    """
+    try:
+        data: Dict[str, Any] = request.get_json() or {}
+        return {{ name | to_pascal_case }}View.update_{{ name | lower }}(id, data)
+    except NotFoundError:
+        raise
+    except Exception as e:
+        raise
+
 
 @{{ name | lower }}_bp.route('/<int:id>', methods=['DELETE'])
-def delete(id):
-    success = service.delete_{{ name | lower }}(id)
-    if success:
-        return jsonify({'message': 'Deleted'}), 200
-    return jsonify({'error': 'Not found'}), 404
+def delete(id: int):
+    """
+    Delete a {{ name | lower }}.
+    
+    Args:
+        id: {{ name | to_pascal_case }} ID
+        
+    Returns:
+        JSON response confirming deletion
+    """
+    try:
+        return {{ name | to_pascal_case }}View.delete_{{ name | lower }}(id)
+    except NotFoundError:
+        raise
+    except Exception as e:
+        raise
+
 {%- else %}
+
 # Dummy route for standalone generation
-# TODO: Inject Service here
-# service = {{ name | to_pascal_case }}Service()
+# TODO: Implement {{ name | to_pascal_case }}View methods
+# view = {{ name | to_pascal_case }}View()
 
 @{{ name | lower }}_bp.route('/', methods=['GET'])
 def index():
+    """
+    Example route endpoint.
+    
+    Returns:
+        JSON response with greeting message
+    """
+    from flask import jsonify
     return jsonify({"message": "Hello from {{ name }} route!"})
 {%- endif %}

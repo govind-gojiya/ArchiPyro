@@ -10,9 +10,6 @@ from .cache import cache
 {%- if 'Mail Service' in config.features %}
 from .mail import mail
 {%- endif %}
-{%- if 'JWT / Auth Template' in config.features %}
-from .jwt import jwt
-{%- endif %}
 {%- if 'Celery / RQ Background Tasks' in config.features %}
 from .celery import celery, init_celery
 {%- endif %}
@@ -33,10 +30,6 @@ def init_extensions(app):
 
     {%- if 'Mail Service' in config.features %}
     mail.init_app(app)
-    {%- endif %}
-
-    {%- if 'JWT / Auth Template' in config.features %}
-    jwt.init_app(app)
     {%- endif %}
 
     {%- if 'Celery / RQ Background Tasks' in config.features %}

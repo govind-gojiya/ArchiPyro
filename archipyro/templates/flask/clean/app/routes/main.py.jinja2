@@ -1,0 +1,21 @@
+"""
+Main routes for the application.
+"""
+from flask import Blueprint
+from app.utils.response import success_response
+
+main_bp = Blueprint("main", __name__)
+
+
+@main_bp.route("/")
+def index():
+    """
+    Root endpoint - welcome message.
+    
+    Returns:
+        JSON response with welcome message
+    """
+    return success_response(
+        data={"message": "Welcome to {{ config.name }}!"},
+        message="API is running"
+    ), 200

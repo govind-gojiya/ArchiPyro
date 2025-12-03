@@ -1,0 +1,64 @@
+"""
+Authentication routes.
+"""
+from flask import Blueprint
+from app.views.auth import AuthView, DashboardView
+from app.middleware.auth import require_login
+from app.exceptions import ValidationError, UnauthorizedError
+
+auth_bp = Blueprint('auth', __name__)
+
+
+@auth_bp.route('/login', methods=['POST'])
+def login():
+    """
+    User login endpoint.
+    
+    Request body (JSON):
+        {
+            "username": "string",
+            "password": "string"
+        }
+    
+    Returns:
+        JSON response with token and user data
+    """
+    try:
+        return AuthView.login()
+    except (ValidationError, UnauthorizedError):
+        raise
+
+
+@auth_bp.route('/register', methods=['POST'])
+def register():
+    """
+    User registration endpoint.
+    
+    Request body (JSON):
+        {
+            "username": "string",
+            "password": "string"
+        }
+    
+    Returns:
+        JSON response with token and user data
+    """
+    try:
+        return AuthView.register()
+    except ValidationError:
+        raise
+
+
+@auth_bp.route('/dashboard', methods=['GET'])
+@require_login
+def dashboard(user):
+    """
+    User dashboard endpoint (requires authentication).
+    
+    Headers:
+        Authorization: Bearer <token>
+    
+    Returns:
+        JSON response with dashboard data
+    """
+    return DashboardView.get_dashboard(user)

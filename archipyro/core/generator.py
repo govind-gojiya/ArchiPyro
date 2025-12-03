@@ -110,6 +110,11 @@ class Generator:
         """Handle Clean Architecture generation for Flask and FastAPI."""
         app_dir = project_dir / "app"
         app_dir.mkdir(exist_ok=True)
+        
+        # Create all necessary directories early
+        (app_dir / "models").mkdir(exist_ok=True)
+        (app_dir / "utils").mkdir(exist_ok=True)
+
         # Shared requirements and README
         self._render_template(f"{template_base}/requirements.txt.jinja2", project_dir / "requirements.txt", config)
         self._render_template(f"{template_base}/README.md.jinja2", project_dir / "README.md", config)
@@ -118,12 +123,21 @@ class Generator:
         self._render_template(f"{template_base}/app/__init__.py.jinja2", app_dir / "__init__.py", config)
         
         if config.framework == "Flask":
-            # For Flask, main.py.jinja2 is the blueprint, goes to routes/main.py
+            (app_dir / "views").mkdir(exist_ok=True)
+            (app_dir / "forms").mkdir(exist_ok=True)
+            (app_dir / "middleware").mkdir(exist_ok=True)
             (app_dir / "routes").mkdir(exist_ok=True)
-            self._render_template(f"{template_base}/app/main.py.jinja2", app_dir / "routes" / "main.py", config)
+            (app_dir / "extensions").mkdir(exist_ok=True)
+            (app_dir / "config").mkdir(exist_ok=True)
+            (app_dir / "exceptions").mkdir(exist_ok=True)
+
+            # Creating blueprints in routes
+            self._render_template(f"{template_base}/app/routes/__init__.py.jinja2", app_dir / "routes" / "__init__.py", config)
+
+            # For Flask, main.py.jinja2 is the blueprint, goes to routes/main.py
+            self._render_template(f"{template_base}/app/routes/main.py.jinja2", app_dir / "routes" / "main.py", config)
              
             # Extensions Folder
-            (app_dir / "extensions").mkdir(exist_ok=True)
             self._render_template(f"{template_base}/app/extensions/__init__.py.jinja2", app_dir / "extensions" / "__init__.py", config)
             
             if config.database != "None":
@@ -131,7 +145,6 @@ class Generator:
             
             # Config Folder
             config_dir = app_dir / "config"
-            config_dir.mkdir(exist_ok=True)
             self._render_template(f"{template_base}/config/__init__.py.jinja2", config_dir / "__init__.py", config)
             self._render_template(f"{template_base}/config/base.py.jinja2", config_dir / "base.py", config)
             self._render_template(f"{template_base}/config/development.py.jinja2", config_dir / "development.py", config)
@@ -140,41 +153,59 @@ class Generator:
             
             if "Mail Service" in config.features:
                 self._render_template(f"{template_base}/app/extensions/mail.py.jinja2", app_dir / "extensions" / "mail.py", config)
-                
-            if "JWT / Auth Template" in config.features:
-                self._render_template(f"{template_base}/app/extensions/jwt.py.jinja2", app_dir / "extensions" / "jwt.py", config)
 
             if "Redis / Cache" in config.features:
                 self._render_template(f"{template_base}/app/extensions/cache.py.jinja2", app_dir / "extensions" / "cache.py", config)
 
             # Celery Extension
             if "Celery / RQ Background Tasks" in config.features:
-                (app_dir / "extensions").mkdir(exist_ok=True) # Ensure extensions dir exists
                 self._render_template(f"{template_base}/app/extensions/celery.py.jinja2", app_dir / "extensions" / "celery.py", config)
                 # Generate Celery worker entry point
                 self._render_template(f"{template_base}/celery_worker.py.jinja2", project_dir / "celery_worker.py", config)
 
             # JWT Auth for Flask
             if "JWT / Auth Template" in config.features:
-                (app_dir / "auth").mkdir(exist_ok=True)
-                self._render_template(f"{template_base}/app/auth/utils.py.jinja2", app_dir / "auth" / "utils.py", config)
-                self._render_template(f"{template_base}/app/auth/routes.py.jinja2", app_dir / "auth" / "routes.py", config)
-                (app_dir / "auth" / "__init__.py").touch()
-                # Also need User model
-                (app_dir / "models").mkdir(exist_ok=True)
-                self._render_template(f"{template_base}/app/models/user.py.jinja2", app_dir / "models" / "user.py", config)
+                self._render_template(f"{template_base}/app/forms/auth.py.jinja2", app_dir / "forms" / "auth.py", config)
+                self._render_template(f"{template_base}/app/views/auth.py.jinja2", app_dir / "views" / "auth.py", config)
+                self._render_template(f"{template_base}/app/routes/auth.py.jinja2", app_dir / "routes" / "auth.py", config)
+                self._render_template(f"{template_base}/app/middleware/auth.py.jinja2", app_dir / "middleware" / "auth.py", config)
+                self._render_template(f"{template_base}/app/utils/token.py.jinja2", app_dir / "utils" / "token.py", config)
 
-        else:
+                # Also need User model
+                self._render_template(f"{template_base}/app/models/user.py.jinja2", app_dir / "models" / "user.py", config)
+            else:
+                # Example middleware if no auth
+                self._render_template(f"{template_base}/app/middleware/example.py.jinja2", app_dir / "middleware" / "example.py", config)
+
+            # Create exception files
+            self._render_template(f"{template_base}/app/exceptions/__init__.py.jinja2", app_dir / "exceptions" / "__init__.py", config)
+            self._render_template(f"{template_base}/app/exceptions/base.py.jinja2", app_dir / "exceptions" / "base.py", config)
+            self._render_template(f"{template_base}/app/exceptions/validation.py.jinja2", app_dir / "exceptions" / "validation.py", config)
+            self._render_template(f"{template_base}/app/exceptions/not_found.py.jinja2", app_dir / "exceptions" / "not_found.py", config)
+            self._render_template(f"{template_base}/app/exceptions/unauthorized.py.jinja2", app_dir / "exceptions" / "unauthorized.py", config)
+            
+            # Create response utility
+            self._render_template(f"{template_base}/app/utils/response.py.jinja2", app_dir / "utils" / "response.py", config)
+
+            # Create __init__.py in subdirectories
+            for subdir in ["models", "views", "forms", "middleware", "utils", "exceptions"]:
+                (app_dir / subdir / "__init__.py").touch()
+
+        elif config.framework == "FastAPI":
+            (app_dir / "core").mkdir(exist_ok=True)
+            (app_dir / "dependencies").mkdir(exist_ok=True)
+            (app_dir / "api" / "v1" / "routers").mkdir(parents=True, exist_ok=True)
+            (app_dir / "service").mkdir(exist_ok=True)
+            (app_dir / "repository").mkdir(exist_ok=True)
+
             # For FastAPI, main.py.jinja2 is the app entry point, goes to app/main.py
             self._render_template(f"{template_base}/app/main.py.jinja2", app_dir / "main.py", config)
              
             # FastAPI Core Config
-            (app_dir / "core").mkdir(exist_ok=True)
             self._render_template(f"{template_base}/app/core/config.py.jinja2", app_dir / "core" / "config.py", config)
             (app_dir / "core" / "__init__.py").touch()
 
             # FastAPI Dependencies
-            (app_dir / "dependencies").mkdir(exist_ok=True)
             if config.database != "None":
                 self._render_template(f"{template_base}/app/dependencies/db.py.jinja2", app_dir / "dependencies" / "db.py", config)
             (app_dir / "dependencies" / "__init__.py").touch()
@@ -182,17 +213,20 @@ class Generator:
             # JWT Auth for FastAPI
             if "JWT / Auth Template" in config.features:
                 self._render_template(f"{template_base}/app/core/security.py.jinja2", app_dir / "core" / "security.py", config)
-                (app_dir / "api" / "v1" / "routers").mkdir(parents=True, exist_ok=True)
                 self._render_template(f"{template_base}/app/api/v1/routers/auth.py.jinja2", app_dir / "api" / "v1" / "routers" / "auth.py", config)
 
             # Mail Service for FastAPI
             if "Mail Service" in config.features:
                 self._render_template(f"{template_base}/app/core/mail.py.jinja2", app_dir / "core" / "mail.py", config)
 
+            # Create __init__.py in subdirectories
+            for subdir in ["models", "service", "repository", "utils"]:
+                (app_dir / subdir / "__init__.py").touch()
+        else:
+            raise ValueError(f"Unsupported framework: {config.framework}")
 
         # Environment files
         self._render_template("shared/.env.jinja2", project_dir / ".env", config)
-        self._render_template("shared/.env.example.jinja2", project_dir / ".env.example", config)
         
         # Docker
         if "Docker" in config.features:
@@ -222,23 +256,12 @@ class Generator:
             else:
                 self._render_template("shared/logging_config.py.jinja2", app_dir / "core" / "logging.py", config)
 
-        # Create standard clean architecture folders
-        (app_dir / "models").mkdir(exist_ok=True)
-        (app_dir / "services").mkdir(exist_ok=True)
-        (app_dir / "repositories").mkdir(exist_ok=True)
-        (app_dir / "routes").mkdir(exist_ok=True)
-        (app_dir / "utils").mkdir(exist_ok=True)
-        
         # Create utils/email.py
         self._render_template(f"{template_base}/app/utils/email.py.jinja2", app_dir / "utils" / "email.py", config)
         
         # Generate Celery guide if Celery is enabled
         if "Celery / RQ Background Tasks" in config.features:
             self._render_template("shared/CELERY_GUIDE.md.jinja2", project_dir / "CELERY_GUIDE.md", config)
-
-        # Create __init__.py in subdirectories
-        for subdir in ["models", "services", "repositories", "utils"]:
-            (app_dir / subdir / "__init__.py").touch()
             
         # Save config
         config.save(project_dir / "archipyro.json")
@@ -253,15 +276,21 @@ class Generator:
         template = self.env.get_template(template_name)
         content = template.render(config=config, **kwargs)
         output_path.write_text(content)
-        print(f"Created {output_path}")
+        # print(f"Created {output_path}")
 
     def generate_service(self, config: ProjectConfig, name: str, is_resource: bool = False):
+        if config.framework == "Flask" and config.architecture == "Clean Architecture":
+             print("Services are not used in this architecture. Use Views instead.")
+             return
         name_singular = self.p.singular_noun(name) or name
         template_path = f"{config.framework.lower()}/clean/service.py.jinja2"
         output_path = Path.cwd() / "app" / "services" / f"{name_singular.lower()}_service.py"
         self._render_template(template_path, output_path, config, name=name_singular, is_resource=is_resource)
 
     def generate_repository(self, config: ProjectConfig, name: str, is_resource: bool = False):
+        if config.framework == "Flask" and config.architecture == "Clean Architecture":
+             print("Repositories are not used in this architecture. Use Models directly in Views.")
+             return
         name_singular = self.p.singular_noun(name) or name
         template_path = f"{config.framework.lower()}/clean/repository.py.jinja2"
         output_path = Path.cwd() / "app" / "repositories" / f"{name_singular.lower()}_repository.py"
@@ -313,12 +342,37 @@ class Generator:
              (Path.cwd() / "app" / "schemas").mkdir(exist_ok=True)
              self._render_template(template_path, output_path, config, name=name_singular)
 
+    def generate_view(self, config: ProjectConfig, name: str, is_resource: bool = False):
+        name_singular = self.p.singular_noun(name) or name
+        template_path = f"{config.framework.lower()}/clean/view.py.jinja2"
+        output_path = Path.cwd() / "app" / "views" / f"{name_singular.lower()}.py"
+        self._render_template(template_path, output_path, config, name=name_singular, is_resource=is_resource)
+
+    def generate_form(self, config: ProjectConfig, name: str, is_resource: bool = False):
+        name_singular = self.p.singular_noun(name) or name
+        template_path = f"{config.framework.lower()}/clean/form.py.jinja2"
+        output_path = Path.cwd() / "app" / "forms" / f"{name_singular.lower()}.py"
+        self._render_template(template_path, output_path, config, name=name_singular, is_resource=is_resource)
+
+    def generate_middleware(self, config: ProjectConfig, name: str):
+        name_singular = self.p.singular_noun(name) or name
+        template_path = f"{config.framework.lower()}/clean/middleware.py.jinja2"
+        output_path = Path.cwd() / "app" / "middleware" / f"{name_singular.lower()}.py"
+        self._render_template(template_path, output_path, config, name=name_singular)
 
     def generate_resource(self, config: ProjectConfig, name: str):
         name_singular = self.p.singular_noun(name) or name
         self.generate_model(config, name_singular, is_resource=True)
-        self.generate_repository(config, name_singular, is_resource=True)
-        self.generate_service(config, name_singular, is_resource=True)
+        
+        if config.framework == "Flask" and config.architecture == "Clean Architecture":
+             # Use Views and Forms for Flask Clean
+             self.generate_view(config, name_singular)
+             self.generate_form(config, name_singular)
+        else:
+             # Use Service/Repository for others
+             self.generate_repository(config, name_singular, is_resource=True)
+             self.generate_service(config, name_singular, is_resource=True)
+             
         self.generate_route(config, name_singular, is_resource=True)
         
         if config.framework == "FastAPI":
@@ -344,19 +398,12 @@ class Generator:
                 return
             
             # Add import and registration before the last line
-            import_line = f"    from app.routes.{name_lower} import {name_lower}_bp\n"
-            register_line = f"    app.register_blueprint({name_lower}_bp, url_prefix='/{name_lower}')\n"
+            import_line = f"\nfrom app.routes.{name_lower} import {name_lower}_bp\n"
+            register_line = f"api_bp.register_blueprint({name_lower}_bp, url_prefix='/{name_lower}')\n"
             
-            # Insert before the comment line "# Additional blueprints..."
-            if "# Additional blueprints will be registered here automatically" in content:
-                new_content = content.replace(
-                    "    # Additional blueprints will be registered here automatically",
-                    f"{import_line}{register_line}    # Additional blueprints will be registered here automatically"
-                )
-                routes_init.write_text(new_content)
-                print(f"Registered blueprint {name_lower}_bp in app/routes/__init__.py")
-            else:
-                print(f"Warning: Could not find registration marker in app/routes/__init__.py")
+            # Insert at the end of the file
+            routes_init.write_text(content + import_line + register_line)
+            print(f"Registered blueprint {name_lower}_bp in app/routes/__init__.py")
 
         else:
             # FastAPI: Register router in app/main.py

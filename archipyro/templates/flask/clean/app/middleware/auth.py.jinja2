@@ -1,0 +1,74 @@
+"""
+Authentication middleware for protecting routes.
+"""
+from functools import wraps
+from typing import Callable, Any
+from flask import request
+from app.utils.token import verify_token
+from app.models.user import User
+from app.exceptions import UnauthorizedError
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def require_login(f: Callable) -> Callable:
+    """
+    Decorator to require authentication for a route.
+    
+    The decorated function will receive the authenticated user as the first argument
+    after the route parameters.
+    
+    Usage:
+        @auth_bp.route('/protected')
+        @require_login
+        def protected_route(user):
+            return jsonify({'user_id': user.id})
+    
+    Args:
+        f: Function to decorate
+        
+    Returns:
+        Decorated function that requires authentication
+        
+    Raises:
+        UnauthorizedError: If token is missing or invalid
+    """
+    @wraps(f)
+    def decorated(*args: Any, **kwargs: Any):
+        # Extract token from Authorization header
+        auth_header = request.headers.get('Authorization', '')
+        
+        if not auth_header:
+            logger.warning("Authentication attempt without Authorization header")
+            raise UnauthorizedError("Token is missing")
+        
+        # Parse Bearer token
+        try:
+            parts = auth_header.split(" ")
+            if len(parts) != 2 or parts[0].lower() != 'bearer':
+                raise UnauthorizedError("Invalid authorization header format. Expected: Bearer <token>")
+            token = parts[1]
+        except (IndexError, ValueError) as e:
+            logger.warning(f"Invalid authorization header format: {auth_header}")
+            raise UnauthorizedError("Invalid authorization header format")
+        
+        # Verify token and get user
+        try:
+            user_id = verify_token(token)
+            user = User.query.get(user_id)
+            
+            if not user:
+                logger.warning(f"User {user_id} from token not found in database")
+                raise UnauthorizedError("User not found")
+            
+            # Call the original function with user as first argument
+            return f(user, *args, **kwargs)
+            
+        except UnauthorizedError:
+            raise
+        except Exception as e:
+            logger.error(f"Unexpected error in authentication middleware: {str(e)}", exc_info=True)
+            raise UnauthorizedError("Authentication failed")
+    
+    return decorated

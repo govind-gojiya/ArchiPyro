@@ -32,11 +32,7 @@ def init_celery(app=None):
             'example-every-30-minutes': {
                 'task': 'app.tasks.example.hello_task',
                 'schedule': crontab(minute='*/30'),
-            },
-            'cleanup-daily-midnight': {
-                'task': 'app.tasks.example.cleanup_task',
-                'schedule': crontab(hour=0, minute=0),
-            },
+            }
         }
         
         # Make Celery work with Flask app context

@@ -1,0 +1,28 @@
+"""
+Validation error exception.
+"""
+from typing import Optional, Dict, Any
+from .base import BaseAPIException
+
+
+class ValidationError(BaseAPIException):
+    """
+    Exception raised for validation errors.
+    """
+    status_code = 400
+    default_message = "Validation error"
+
+    def __init__(
+        self,
+        message: Optional[str] = None,
+        errors: Optional[Dict[str, Any]] = None
+    ):
+        """
+        Initialize validation error.
+        
+        Args:
+            message: Error message
+            errors: Dictionary of field-specific validation errors
+        """
+        super().__init__(message=message, status_code=self.status_code, errors=errors)
+

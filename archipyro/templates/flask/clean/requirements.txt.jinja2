@@ -1,4 +1,6 @@
 flask
+flask-wtf
+jwt
 python-dotenv
 {%- if config.database in ['PostgreSQL', 'MySQL', 'SQLite'] or "SQLAlchemy / ORM" in config.features %}
 flask-sqlalchemy
@@ -22,9 +24,6 @@ redis
 {%- endif %}
 {%- if "Mail Service" in config.features %}
 flask-mail
-{%- endif %}
-{%- if "JWT / Auth Template" in config.features %}
-flask-jwt-extended
 {%- endif %}
 {%- if "Celery / RQ Background Tasks" in config.features %}
 celery

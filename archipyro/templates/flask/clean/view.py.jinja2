@@ -1,0 +1,202 @@
+"""
+{{ name | to_pascal_case }} View - Business Logic.
+"""
+from typing import Dict, Tuple, Any, Optional
+from flask import jsonify, Response
+from app.extensions import db
+from app.exceptions import NotFoundError, ValidationError
+from app.utils.response import success_response, error_response
+import logging
+
+logger = logging.getLogger(__name__)
+
+{%- if is_resource %}
+from app.models.{{ name | lower }} import {{ name | to_pascal_case }}
+from app.forms.{{ name | lower }} import {{ name | to_pascal_case }}Form
+{%- else %}
+# Dummy view for standalone {{ name | to_pascal_case }} generation
+# TODO: Implement {{ name | to_pascal_case }} model and {{ name | to_pascal_case }}Form
+# from app.models.{{ name | lower }} import {{ name | to_pascal_case }}
+# from app.forms.{{ name | lower }} import {{ name | to_pascal_case }}Form
+{%- endif %}
+
+class {{ name | to_pascal_case }}View:
+    @staticmethod
+    def get_all_{{ name | lower }}s() -> Tuple[Response, int]:
+        """
+        Retrieve all {{ name | lower }} records.
+        
+        Returns:
+            Tuple of (JSON response, HTTP status code)
+        """
+        try:
+            {%- if is_resource %}
+            items = {{ name | to_pascal_case }}.query.all()
+            data = [item.to_dict() for item in items]
+            return success_response(data, message="{{ name | to_pascal_case }}s retrieved successfully"), 200
+            {%- else %}
+            # items = {{ name | to_pascal_case }}.query.all()
+            # data = [item.to_dict() for item in items]
+            return success_response(None, message="{{ name | to_pascal_case }}s retrieved successfully"), 200
+            {%- endif %}
+        except Exception as e:
+            logger.error(f"Error retrieving {{ name | lower }}s: {str(e)}", exc_info=True)
+            return error_response("Failed to retrieve {{ name | lower }}s"), 500
+
+    @staticmethod
+    def get_{{ name | lower }}_by_id(id: int) -> Tuple[Response, int]:
+        """
+        Retrieve a {{ name | lower }} by ID.
+        
+        Args:
+            id: {{ name | to_pascal_case }} ID
+            
+        Returns:
+            Tuple of (JSON response, HTTP status code)
+        """
+        try:
+            {%- if is_resource %}
+            item = {{ name | to_pascal_case }}.query.get(id)
+            if not item:
+                raise NotFoundError(f"{{ name | to_pascal_case }} with id {id} not found")
+            return success_response(item.to_dict(), message="{{ name | to_pascal_case }} retrieved successfully"), 200
+            {%- else %}
+            # item = {{ name | to_pascal_case }}.query.get(id)
+            # if not item:
+            #     raise NotFoundError(f"{{ name | to_pascal_case }} with id {id} not found")
+            return success_response(None, message="{{ name | to_pascal_case }} retrieved successfully"), 200
+            {%- endif %}
+        except NotFoundError:
+            raise
+        except Exception as e:
+            logger.error(f"Error retrieving {{ name | lower }} {id}: {str(e)}", exc_info=True)
+            return error_response("Failed to retrieve {{ name | lower }}"), 500
+
+    @staticmethod
+    def create_{{ name | lower }}(data: Dict[str, Any]) -> Tuple[Response, int]:
+        """
+        Create a new {{ name | lower }}.
+        
+        Args:
+            data: Dictionary containing {{ name | lower }} data
+            
+        Returns:
+            Tuple of (JSON response, HTTP status code)
+        """
+        try:
+            {%- if is_resource %}
+            # For JSON API, validate data directly
+            form = {{ name | to_pascal_case }}Form(data=data, meta={'csrf': False})
+            if not form.validate():
+                raise ValidationError("Invalid data", form.errors)
+            
+            item = {{ name | to_pascal_case }}()
+            # Populate item from form data, excluding csrf_token
+            for field in form:
+                if field.name != 'csrf_token' and hasattr(item, field.name):
+                    setattr(item, field.name, field.data)
+            
+            db.session.add(item)
+            db.session.commit()
+            logger.info(f"Created {{ name | lower }} with id {item.id}")
+            return success_response(item.to_dict(), message="{{ name | to_pascal_case }} created successfully"), 201
+            {%- else %}
+            # form = {{ name | to_pascal_case }}Form(data=data, meta={'csrf': False})
+            # if not form.validate():
+            #     raise ValidationError("Invalid data", form.errors)
+            # item = {{ name | to_pascal_case }}()
+            # for field in form:
+            #    if field.name != 'csrf_token' and hasattr(item, field.name):
+            #        setattr(item, field.name, field.data)
+            # db.session.add(item)
+            # db.session.commit()
+            # logger.info(f"Created {{ name | lower }} with id {item.id}")
+            # return success_response(item.to_dict(), message="{{ name | to_pascal_case }} created successfully"), 201
+            return success_response(None, message="{{ name | to_pascal_case }} created successfully"), 201
+            {%- endif %}
+        except ValidationError:
+            raise
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error creating {{ name | lower }}: {str(e)}", exc_info=True)
+            return error_response("Failed to create {{ name | lower }}"), 500
+
+    @staticmethod
+    def update_{{ name | lower }}(id: int, data: Dict[str, Any]) -> Tuple[Response, int]:
+        """
+        Update an existing {{ name | lower }}.
+        
+        Args:
+            id: {{ name | to_pascal_case }} ID
+            data: Dictionary containing updated data
+            
+        Returns:
+            Tuple of (JSON response, HTTP status code)
+        """
+        try:
+            {%- if is_resource %}
+            item = {{ name | to_pascal_case }}.query.get(id)
+            if not item:
+                raise NotFoundError(f"{{ name | to_pascal_case }} with id {id} not found")
+            # Update only provided fields
+            for key, value in data.items():
+                if hasattr(item, key) and not key.startswith('_'):
+                    setattr(item, key, value)
+            
+            db.session.commit()
+            logger.info(f"Updated {{ name | lower }} with id {id}")
+            return success_response(item.to_dict(), message="{{ name | to_pascal_case }} updated successfully"), 200
+            {%- else %}
+            # item = {{ name | to_pascal_case }}.query.get(id)
+            # if not item:
+            #     raise NotFoundError(f"{{ name | to_pascal_case }} with id {id} not found")
+            # Update only provided fields
+            # for key, value in data.items():
+            #    if hasattr(item, key) and not key.startswith('_'):
+            #        setattr(item, key, value)
+            # db.session.commit()
+            # logger.info(f"Updated {{ name | lower }} with id {id}")
+            return success_response(None, message="{{ name | to_pascal_case }} updated successfully"), 200
+            {%- endif %}
+        except NotFoundError:
+            raise
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error updating {{ name | lower }} {id}: {str(e)}", exc_info=True)
+            return error_response("Failed to update {{ name | lower }}"), 500
+
+    @staticmethod
+    def delete_{{ name | lower }}(id: int) -> Tuple[Response, int]:
+        """
+        Delete a {{ name | lower }}.
+        
+        Args:
+            id: {{ name | to_pascal_case }} ID
+            
+        Returns:
+            Tuple of (JSON response, HTTP status code)
+        """
+        try:
+            {%- if is_resource %}
+            item = {{ name | to_pascal_case }}.query.get(id)
+            if not item:
+                raise NotFoundError(f"{{ name | to_pascal_case }} with id {id} not found")
+            db.session.delete(item)
+            db.session.commit()
+            logger.info(f"Deleted {{ name | lower }} with id {id}")
+            return success_response(item.to_dict(), message="{{ name | to_pascal_case }} deleted successfully"), 200
+            {%- else %}
+            # item = {{ name | to_pascal_case }}.query.get(id)
+            # if not item:
+            #     raise NotFoundError(f"{{ name | to_pascal_case }} with id {id} not found")
+            # db.session.delete(item)
+            # db.session.commit()
+            # logger.info(f"Deleted {{ name | lower }} with id {id}")
+            return success_response(None, message="{{ name | to_pascal_case }} deleted successfully"), 200
+            {%- endif %}
+        except NotFoundError:
+            raise
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error deleting {{ name | lower }} {id}: {str(e)}", exc_info=True)
+            return error_response("Failed to delete {{ name | lower }}"), 500

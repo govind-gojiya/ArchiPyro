@@ -1,0 +1,23 @@
+"""
+Unauthorized error exception.
+"""
+from typing import Optional
+from .base import BaseAPIException
+
+
+class UnauthorizedError(BaseAPIException):
+    """
+    Exception raised for authentication/authorization errors.
+    """
+    status_code = 401
+    default_message = "Unauthorized"
+
+    def __init__(self, message: Optional[str] = None):
+        """
+        Initialize unauthorized error.
+        
+        Args:
+            message: Error message
+        """
+        super().__init__(message=message, status_code=self.status_code)
+

@@ -1,0 +1,73 @@
+"""
+JWT Token utilities for authentication.
+"""
+import jwt
+from typing import Optional
+from datetime import datetime, timedelta, timezone
+from flask import current_app
+from app.exceptions import UnauthorizedError
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Token expiration time (default: 1 day)
+TOKEN_EXPIRATION_HOURS = 24
+
+
+def generate_token(user_id: int) -> str:
+    """
+    Generate a JWT token for a user.
+    
+    Args:
+        user_id: User ID to encode in token
+        
+    Returns:
+        Encoded JWT token string
+    """
+    now = datetime.now(timezone.utc)
+    payload = {
+        'sub': str(user_id),
+        'exp': now + timedelta(hours=TOKEN_EXPIRATION_HOURS),
+        'iat': now
+    }
+    try:
+        token = jwt.encode(
+            payload,
+            current_app.config['SECRET_KEY'],
+            algorithm='HS256'
+        )
+        return token
+    except Exception as e:
+        logger.error(f"Error generating token for user {user_id}: {str(e)}", exc_info=True)
+        raise
+
+
+def verify_token(token: str) -> int:
+    """
+    Verify and decode a JWT token.
+    
+    Args:
+        token: JWT token string to verify
+        
+    Returns:
+        User ID from token payload
+        
+    Raises:
+        UnauthorizedError: If token is invalid or expired
+    """
+    try:
+        payload = jwt.decode(
+            token,
+            current_app.config['SECRET_KEY'],
+            algorithms=['HS256']
+        )
+    return int(payload['sub'])
+    except jwt.ExpiredSignatureError:
+        logger.warning("Token has expired")
+        raise UnauthorizedError("Token has expired")
+    except jwt.InvalidTokenError as e:
+        logger.warning(f"Invalid token: {str(e)}")
+        raise UnauthorizedError("Invalid token")
+    except Exception as e:
+        logger.error(f"Error verifying token: {str(e)}", exc_info=True)
+        raise UnauthorizedError("Token verification failed")
