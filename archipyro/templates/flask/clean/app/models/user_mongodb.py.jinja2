@@ -1,0 +1,59 @@
+from typing import Dict, Any
+from datetime import datetime
+from mongoengine import Document, StringField, DateTimeField
+from werkzeug.security import generate_password_hash, check_password_hash
+
+class User(Document):
+    """
+    User model for authentication (MongoDB).
+    """
+    meta = {
+        'collection': 'users',
+        'indexes': ['username', 'created_at']
+    }
+
+    username = StringField(max_length=64, required=True, unique=True)
+    password_hash = StringField(max_length=255, required=True)
+    created_at = DateTimeField(default=datetime.utcnow, required=True)
+    updated_at = DateTimeField(default=datetime.utcnow, required=True)
+
+    def save(self, *args, **kwargs):
+        """Override save to update updated_at timestamp."""
+        self.updated_at = datetime.utcnow()
+        return super().save(*args, **kwargs)
+
+    def set_password(self, password: str) -> None:
+        """
+        Set password hash for user.
+        
+        Args:
+            password: Plain text password
+        """
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password: str) -> bool:
+        """
+        Check if provided password matches the hash.
+        
+        Args:
+            password: Plain text password to check
+            
+        Returns:
+            True if password matches, False otherwise
+        """
+        return check_password_hash(self.password_hash, password)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert user to dictionary representation.
+        
+        Returns:
+            Dictionary containing user data (excluding password)
+        """
+        return {
+            'id': str(self.id),
+            'username': self.username,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+

@@ -5,7 +5,6 @@ from flask_migrate import Migrate
 db = SQLAlchemy()
 migrate = Migrate()
 {%- endif %}
-
 {%- if config.database == 'MongoDB' %}
 from mongoengine import connect
 import os

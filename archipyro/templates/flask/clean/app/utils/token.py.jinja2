@@ -14,17 +14,18 @@ logger = logging.getLogger(__name__)
 TOKEN_EXPIRATION_HOURS = 24
 
 
-def generate_token(user_id: int) -> str:
+def generate_token(user_id) -> str:
     """
     Generate a JWT token for a user.
     
     Args:
-        user_id: User ID to encode in token
+        user_id: User ID to encode in token (int for SQL, str/ObjectId for MongoDB)
         
     Returns:
         Encoded JWT token string
     """
     now = datetime.now(timezone.utc)
+    # Convert to string to support both SQL (int) and MongoDB (ObjectId)
     payload = {
         'sub': str(user_id),
         'exp': now + timedelta(hours=TOKEN_EXPIRATION_HOURS),
@@ -42,7 +43,7 @@ def generate_token(user_id: int) -> str:
         raise
 
 
-def verify_token(token: str) -> int:
+def verify_token(token: str) -> str:
     """
     Verify and decode a JWT token.
     
@@ -50,7 +51,7 @@ def verify_token(token: str) -> int:
         token: JWT token string to verify
         
     Returns:
-        User ID from token payload
+        User ID from token payload (string for MongoDB ObjectId compatibility)
         
     Raises:
         UnauthorizedError: If token is invalid or expired
@@ -61,7 +62,8 @@ def verify_token(token: str) -> int:
             current_app.config['SECRET_KEY'],
             algorithms=['HS256']
         )
-    return int(payload['sub'])
+        # Return as string to support both SQL (int) and MongoDB (ObjectId string)
+        return str(payload['sub'])
     except jwt.ExpiredSignatureError:
         logger.warning("Token has expired")
         raise UnauthorizedError("Token has expired")

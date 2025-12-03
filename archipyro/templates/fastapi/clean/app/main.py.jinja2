@@ -2,16 +2,12 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.api.v1.routers import example_router
-{%- if config.database != 'None' %}
 from app.dependencies.db import init_db
-{%- endif %}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    {%- if config.database != 'None' %}
     init_db()
-    {%- endif %}
     yield
     # Shutdown
     pass

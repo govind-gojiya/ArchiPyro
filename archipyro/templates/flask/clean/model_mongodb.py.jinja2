@@ -1,0 +1,52 @@
+"""
+Model definition for {{ name | to_pascal_case }} (MongoDB).
+"""
+from typing import Dict, Any, Optional
+from datetime import datetime
+from mongoengine import Document, StringField, DateTimeField, IntField, DictField, ListField
+from bson import ObjectId
+
+class {{ name | to_pascal_case }}(Document):
+    """
+    {{ name | to_pascal_case }} model for MongoDB.
+    """
+    meta = {
+        'collection': '{{ name | lower }}s',
+        'indexes': ['created_at']
+    }
+
+    # MongoDB uses _id automatically, but we can add custom fields
+    created_at = DateTimeField(default=datetime.utcnow, required=True)
+    updated_at = DateTimeField(default=datetime.utcnow, required=True)
+    
+    # Add your fields here
+    # name = StringField(max_length=80, required=True)
+    # description = StringField()
+    # tags = ListField(StringField())
+    # metadata = DictField()
+
+    def save(self, *args, **kwargs):
+        """Override save to update updated_at timestamp."""
+        self.updated_at = datetime.utcnow()
+        return super().save(*args, **kwargs)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert model instance to dictionary.
+        
+        Returns:
+            Dictionary representation of the model
+        """
+        data = {
+            'id': str(self.id),
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            # 'name': self.name,
+            # 'description': self.description
+        }
+        return data
+    
+    def __repr__(self) -> str:
+        """String representation of the model."""
+        return f'<{{ name | to_pascal_case }} {self.id}>'
+

@@ -56,7 +56,15 @@ def require_login(f: Callable) -> Callable:
         # Verify token and get user
         try:
             user_id = verify_token(token)
-            user = User.query.get(user_id)
+            {%- if config.database == 'MongoDB' %}
+            from bson import ObjectId
+            try:
+                user = User.objects(id=ObjectId(user_id)).first()
+            except Exception:
+                user = None
+            {%- else %}
+            user = User.query.get(int(user_id))
+            {%- endif %}
             
             if not user:
                 logger.warning(f"User {user_id} from token not found in database")

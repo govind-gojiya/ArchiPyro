@@ -1,6 +1,6 @@
 flask
 flask-wtf
-jwt
+PyJWT
 python-dotenv
 {%- if config.database in ['PostgreSQL', 'MySQL', 'SQLite'] or "SQLAlchemy / ORM" in config.features %}
 flask-sqlalchemy
@@ -20,6 +20,8 @@ flask-migrate
 {%- endif %}
 {%- if "Redis / Cache" in config.features %}
 flask-caching
+{%- endif %}
+{%- if 'Redis / Cache' in config.features or 'Celery / RQ Background Tasks' in config.features %}
 redis
 {%- endif %}
 {%- if "Mail Service" in config.features %}
@@ -27,5 +29,4 @@ flask-mail
 {%- endif %}
 {%- if "Celery / RQ Background Tasks" in config.features %}
 celery
-redis
 {%- endif %}

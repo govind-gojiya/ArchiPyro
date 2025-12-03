@@ -29,13 +29,13 @@ def get_all():
         raise
 
 
-@{{ name | lower }}_bp.route('/<int:id>', methods=['GET'])
-def get_by_id(id: int):
+@{{ name | lower }}_bp.route('/<{%- if config.database != 'MongoDB' %}int:{%- endif %}id>', methods=['GET'])
+def get_by_id(id{%- if config.database != 'MongoDB' %}: int{%- endif %}):
     """
     Get a {{ name | lower }} by ID.
     
     Args:
-        id: {{ name | to_pascal_case }} ID
+        id: {{ name | to_pascal_case }} ID{%- if config.database == 'MongoDB' %} (MongoDB ObjectId string){%- else %} (integer){%- endif %}
         
     Returns:
         JSON response with {{ name | lower }} data
@@ -71,13 +71,13 @@ def create():
         raise
 
 
-@{{ name | lower }}_bp.route('/<int:id>', methods=['PUT'])
-def update(id: int):
+@{{ name | lower }}_bp.route('/<{%- if config.database != 'MongoDB' %}int:{%- endif %}id>', methods=['PUT'])
+def update(id{%- if config.database != 'MongoDB' %}: int{%- endif %}):
     """
     Update an existing {{ name | lower }}.
     
     Args:
-        id: {{ name | to_pascal_case }} ID
+        id: {{ name | to_pascal_case }} ID{%- if config.database == 'MongoDB' %} (MongoDB ObjectId string){%- else %} (integer){%- endif %}
         
     Request body (JSON):
         {
@@ -96,13 +96,13 @@ def update(id: int):
         raise
 
 
-@{{ name | lower }}_bp.route('/<int:id>', methods=['DELETE'])
-def delete(id: int):
+@{{ name | lower }}_bp.route('/<{%- if config.database != 'MongoDB' %}int:{%- endif %}id>', methods=['DELETE'])
+def delete(id{%- if config.database != 'MongoDB' %}: int{%- endif %}):
     """
     Delete a {{ name | lower }}.
     
     Args:
-        id: {{ name | to_pascal_case }} ID
+        id: {{ name | to_pascal_case }} ID{%- if config.database == 'MongoDB' %} (MongoDB ObjectId string){%- else %} (integer){%- endif %}
         
     Returns:
         JSON response confirming deletion

@@ -23,8 +23,8 @@ def main():
     framework = prompt.ask_framework()
     architecture = prompt.ask_architecture()
     database = prompt.ask_database()
-    features = prompt.ask_optional_features(architecture)  # Pass architecture
-
+    # Pass framework and database to filter features before showing to user
+    features = prompt.ask_optional_features(architecture, framework=framework, database=database)
     
     config = ProjectConfig(
         name=project_name,

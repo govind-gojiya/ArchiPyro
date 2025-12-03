@@ -30,56 +30,74 @@ def ask_database() -> str:
     return questionary.select(
         "Select database:",
         choices=[
-            "SQLite",
-            "PostgreSQL",
-            "MySQL",
-            "MongoDB",
-            "None",
+            questionary.Choice("SQLite", "SQLite - Lightweight file-based database"),
+            questionary.Choice("PostgreSQL", "PostgreSQL - Advanced open-source database"),
+            questionary.Choice("MySQL", "MySQL - Popular relational database"),
+            questionary.Choice("MongoDB", "MongoDB - NoSQL document database"),
         ],
     ).ask()
 
-def ask_optional_features(architecture: str) -> list[str]:
-    """Ask for features based on architecture."""
+def ask_optional_features(architecture: str, framework: str = None, database: str = None) -> list[str]:
+    """
+    Ask for features based on architecture, framework, and database.
     
+    Args:
+        architecture: Architecture pattern (Minimal, MVC, Clean Architecture)
+        framework: Framework (Flask, FastAPI) - optional, for filtering
+        database: Database type (PostgreSQL, MySQL, SQLite, MongoDB) - optional, for filtering
+    
+    Returns:
+        List of selected features
+    """
+    # Base feature lists
     if architecture == "Minimal":
         # Minimal architecture: very limited features
-        return questionary.checkbox(
-            "Enable optional features:",
-            choices=[
-                "Docker",
-            ],
-        ).ask() or []
+        all_features = [
+            "Docker",
+        ]
     
     elif architecture == "MVC":
         # MVC architecture: template-focused features
-        return questionary.checkbox(
-            "Enable optional features:",
-            choices=[
-                "SQLAlchemy / ORM",
-                "Alembic / DB Migrations",
-                "Mail Service",
-                "Session-Based Auth",
-                "Docker",
-                "GitHub Actions CI",
-                "Logging Setup",
-            ],
-        ).ask() or []
+        all_features = [
+            "SQLAlchemy / ORM",
+            "Alembic / DB Migrations",
+            "Mail Service",
+            "Session-Based Auth",
+            "Docker",
+            "GitHub Actions CI",
+            "Logging Setup",
+        ]
     
     else:  # Clean Architecture
         # Clean Architecture: all features available
-        return questionary.checkbox(
-            "Enable optional features:",
-            choices=[
-                "SQLAlchemy / ORM",
-                "Alembic / DB Migrations",
-                "Redis / Cache",
-                "Celery / RQ Background Tasks",
-                "Mail Service",
-                "JWT / Auth Template",
-                "Docker",
-                "GitHub Actions CI",
-                "Pre-configured Tests (pytest)",
-                "Logging Setup",
-            ],
-        ).ask() or []
+        all_features = [
+            "SQLAlchemy / ORM",
+            "Alembic / DB Migrations",
+            "Redis / Cache",
+            "Celery / RQ Background Tasks",
+            "Mail Service",
+            "JWT / Auth Template",
+            "Docker",
+            "GitHub Actions CI",
+            "Pre-configured Tests (pytest)",
+            "Logging Setup",
+        ]
+    
+    # Filter features based on database
+    if database == "MongoDB":
+        # Remove SQL-specific features for MongoDB
+        all_features = [f for f in all_features if f not in ["SQLAlchemy / ORM", "Alembic / DB Migrations"]]
+    
+    elif database in ["PostgreSQL", "MySQL", "SQLite"]:
+        # SQL databases - keep SQL features
+        pass  # No filtering needed
+    
+    # Filter features based on framework (if needed in future)
+    # Currently both Flask and FastAPI support the same features
+    
+    # Show filtered features to user
+    return questionary.checkbox(
+        "Enable optional features:",
+        choices=all_features,
+    ).ask() or []
 

@@ -140,8 +140,8 @@ class Generator:
             # Extensions Folder
             self._render_template(f"{template_base}/app/extensions/__init__.py.jinja2", app_dir / "extensions" / "__init__.py", config)
             
-            if config.database != "None":
-                self._render_template(f"{template_base}/app/extensions/db.py.jinja2", app_dir / "extensions" / "db.py", config)
+            # Database extension (always created since database is required)
+            self._render_template(f"{template_base}/app/extensions/db.py.jinja2", app_dir / "extensions" / "db.py", config)
             
             # Config Folder
             config_dir = app_dir / "config"
@@ -166,13 +166,16 @@ class Generator:
             # JWT Auth for Flask
             if "JWT / Auth Template" in config.features:
                 self._render_template(f"{template_base}/app/forms/auth.py.jinja2", app_dir / "forms" / "auth.py", config)
-                self._render_template(f"{template_base}/app/views/auth.py.jinja2", app_dir / "views" / "auth.py", config)
+                # Use MongoDB-specific templates if MongoDB is selected
+                if config.database == "MongoDB":
+                    self._render_template(f"{template_base}/app/views/auth_mongodb.py.jinja2", app_dir / "views" / "auth.py", config)
+                    self._render_template(f"{template_base}/app/models/user_mongodb.py.jinja2", app_dir / "models" / "user.py", config)
+                else:
+                    self._render_template(f"{template_base}/app/views/auth.py.jinja2", app_dir / "views" / "auth.py", config)
+                    self._render_template(f"{template_base}/app/models/user.py.jinja2", app_dir / "models" / "user.py", config)
                 self._render_template(f"{template_base}/app/routes/auth.py.jinja2", app_dir / "routes" / "auth.py", config)
                 self._render_template(f"{template_base}/app/middleware/auth.py.jinja2", app_dir / "middleware" / "auth.py", config)
                 self._render_template(f"{template_base}/app/utils/token.py.jinja2", app_dir / "utils" / "token.py", config)
-
-                # Also need User model
-                self._render_template(f"{template_base}/app/models/user.py.jinja2", app_dir / "models" / "user.py", config)
             else:
                 # Example middleware if no auth
                 self._render_template(f"{template_base}/app/middleware/example.py.jinja2", app_dir / "middleware" / "example.py", config)
@@ -206,8 +209,8 @@ class Generator:
             (app_dir / "core" / "__init__.py").touch()
 
             # FastAPI Dependencies
-            if config.database != "None":
-                self._render_template(f"{template_base}/app/dependencies/db.py.jinja2", app_dir / "dependencies" / "db.py", config)
+            # Database dependency (always created since database is required)
+            self._render_template(f"{template_base}/app/dependencies/db.py.jinja2", app_dir / "dependencies" / "db.py", config)
             (app_dir / "dependencies" / "__init__.py").touch()
 
             # JWT Auth for FastAPI
@@ -298,7 +301,11 @@ class Generator:
 
     def generate_model(self, config: ProjectConfig, name: str, is_resource: bool = False):
         name_singular = self.p.singular_noun(name) or name
-        template_path = f"{config.framework.lower()}/clean/model.py.jinja2"
+        # Use MongoDB-specific template if MongoDB is selected
+        if config.database == "MongoDB":
+            template_path = f"{config.framework.lower()}/clean/model_mongodb.py.jinja2"
+        else:
+            template_path = f"{config.framework.lower()}/clean/model.py.jinja2"
         output_path = Path.cwd() / "app" / "models" / f"{name_singular.lower()}.py"
         self._render_template(template_path, output_path, config, name=name_singular, is_resource=is_resource)
 
@@ -344,7 +351,11 @@ class Generator:
 
     def generate_view(self, config: ProjectConfig, name: str, is_resource: bool = False):
         name_singular = self.p.singular_noun(name) or name
-        template_path = f"{config.framework.lower()}/clean/view.py.jinja2"
+        # Use MongoDB-specific template if MongoDB is selected
+        if config.database == "MongoDB":
+            template_path = f"{config.framework.lower()}/clean/view_mongodb.py.jinja2"
+        else:
+            template_path = f"{config.framework.lower()}/clean/view.py.jinja2"
         output_path = Path.cwd() / "app" / "views" / f"{name_singular.lower()}.py"
         self._render_template(template_path, output_path, config, name=name_singular, is_resource=is_resource)
 
